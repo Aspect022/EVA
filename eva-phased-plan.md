@@ -14,7 +14,7 @@ EVA is an autonomous data science assistant designed as a reasoning OS, not a ge
   - Artifacts: `dataset_snapshot/`, `repaired_dataset/`, `feature_view/`, `learning_view/`, `model_candidates/`, `evaluation_results/`, `selected_model/`, `prediction_logs/`, `GAL.json`
 - **Core Orchestrator**: LangGraph state machine tracking pipeline progression and waiting on HITL interrupts.
 - **Core Technology**: Python, FastAPI, Pandas, scikit-learn, Docker.
-- **Frontend**: React + TypeScript (for the Dashboard and the Live Reasoning View).
+- **Frontend**: Streamlit (Temporary Phase 1 testing UI) → React + TypeScript (Phase 4 final UI).
 
 ---
 
@@ -31,6 +31,9 @@ EVA is an autonomous data science assistant designed as a reasoning OS, not a ge
 3. **DRIL (Data Repair) & EPR (Exploration & Pattern Recognition)**
    - **Agent**: `backend-specialist`
    - **Task**: Implement autonomous missing-value handling, type correction, and pattern/correlation detection using standard pandas utilities triggered by LLM reasoning.
+4. **Temporary Streamlit Testing UI**
+   - **Agent**: `frontend-specialist` + `python-patterns`
+   - **Task**: Build a rapid Streamlit application to handle CSV uploads, execute the Phase 1 backend endpoints (`/session/create` and `/upload`), and display the initial Dataset Identity and Exploratory Findings. This will serve as the testing interface until the React frontend is built.
 
 ### Phase 2: Hypothesis Reasoning & Human-in-the-Loop
 *Goal: Implement the core differentiator of EVA: Causal Reasoning with Human Oversight.*
