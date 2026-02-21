@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from Backend.storage.gal_manager import GALManager
+from Backend.orchestrator.pipeline import start_phase_1
 
 router = APIRouter()
 
@@ -45,3 +46,27 @@ def upload_dataset(session_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=404, detail="Session not found.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class ExecuteResponse(BaseModel):
+    session_id: str
+    status: str
+    error: str = None
+
+@router.post("/{session_id}/execute")
+def execute_pipeline(session_id: str, csv_file_name: str):
+    """Triggers the LangGraph pipeline execution for Phase 1."""
+    try:
+        # For phase 1, blocks HTTP until completion
+        result = start_phase_1(session_id, csv_file_name)
+        return ExecuteResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{session_id}/gal")
+def get_gal(session_id: str):
+    """Retrieves the current state of the Global Analysis Ledger."""
+    try:
+        gal = GALManager.read_gal(session_id)
+        return gal.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
