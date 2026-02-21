@@ -58,14 +58,23 @@ with col1:
             with st.spinner("EVA is Reasoning... this may take 20-30 seconds"):
                 try:
                     params = {"csv_file_name": st.session_state.csv_filename}
-                    resp = requests.post(f"{API_URL}/session/{st.session_state.session_id}/execute", params=params)
-                    resp.raise_for_status()
-                    data = resp.json()
-                    if data.get("error"):
-                        st.error(f"Pipeline Error: {data['error']}")
+                    resp = requests.post(f"{API_URL}/session/{st.session_state.session_id}/execute", params=params, timeout=120)
+                    if resp.status_code != 200:
+                        # Extract detailed error from the response body
+                        try:
+                            err_detail = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err_detail = resp.text
+                        st.error(f"Pipeline Error ({resp.status_code}): {err_detail}")
                     else:
-                        st.session_state.pipeline_status = data["status"]
-                        st.success("Pipeline Execution Complete!")
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"Pipeline Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.success("Pipeline Execution Complete!")
+                except requests.exceptions.Timeout:
+                    st.error("Pipeline timed out after 120 seconds.")
                 except Exception as e:
                     st.error(f"Execution failed: {str(e)}")
 

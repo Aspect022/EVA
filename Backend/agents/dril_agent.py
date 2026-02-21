@@ -48,9 +48,9 @@ class DRILAgent:
                 if missing_pct[col] > 60.0:
                     repaired_df.drop(columns=[col], inplace=True)
                 elif repaired_df[col].dtype in ['float64', 'int64'] and repaired_df[col].isnull().any():
-                    repaired_df[col].fillna(repaired_df[col].median(), inplace=True)
+                    repaired_df[col] = repaired_df[col].fillna(repaired_df[col].median())
                 elif repaired_df[col].dtypes == 'object' and repaired_df[col].isnull().any():
-                    repaired_df[col].fillna(repaired_df[col].mode()[0], inplace=True)
+                    repaired_df[col] = repaired_df[col].fillna(repaired_df[col].mode()[0])
                     
             return repaired_df, integrity_record
             

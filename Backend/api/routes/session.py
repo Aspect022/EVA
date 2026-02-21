@@ -6,6 +6,9 @@ from pydantic import BaseModel
 from Backend.storage.gal_manager import GALManager
 from Backend.orchestrator.pipeline import start_phase_1
 
+import traceback
+from typing import Optional
+
 router = APIRouter()
 
 class SessionResponse(BaseModel):
@@ -17,7 +20,6 @@ def create_session():
     """Step 0: Initialize empty analysis universe."""
     session_id = str(uuid.uuid4())
     try:
-        # Spin up new GAL identity
         GALManager.create_session(session_id)
         return SessionResponse(session_id=session_id, message="Session initialized. Pending dataset.")
     except Exception as e:
@@ -30,10 +32,7 @@ def upload_dataset(session_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Only CSV datasets are currently supported in Phase 1.")
         
     try:
-        # Enforce folder exists
-        gal = GALManager.read_gal(session_id) 
-        
-        # Save snapshot
+        gal = GALManager.read_gal(session_id)
         snapshot_dir = GALManager.get_dataset_path(session_id, "dataset_snapshot")
         save_path = snapshot_dir / file.filename
         
@@ -50,7 +49,7 @@ def upload_dataset(session_id: str, file: UploadFile = File(...)):
 class ExecuteResponse(BaseModel):
     session_id: str
     status: str
-    error: str = None
+    error: Optional[str] = None
 
 @router.post("/{session_id}/execute")
 def execute_pipeline(session_id: str, csv_file_name: str):
@@ -60,6 +59,8 @@ def execute_pipeline(session_id: str, csv_file_name: str):
         result = start_phase_1(session_id, csv_file_name)
         return ExecuteResponse(**result)
     except Exception as e:
+        # Print full traceback to the backend terminal for debugging
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{session_id}/gal")

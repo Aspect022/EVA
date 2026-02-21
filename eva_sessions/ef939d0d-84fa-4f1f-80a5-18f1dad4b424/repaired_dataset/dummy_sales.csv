@@ -1,0 +1,11 @@
+TransactionID,Date,CustomerID,Age,Gender,ProductCategory,Amount,IsReturned,StoreLocation,FeedbackScore
+TXN1001,2023-01-15,CUS501,34.0,F,Electronics,599.99,False,New York,4.5
+TXN1002,2023-01-15,CUS502,36.0,M,Clothing,45.5,True,Los Angeles,2.0
+TXN1003,2023-01-16,CUS503,45.0,M,Home & Garden,120.0,False,Chicago,5.0
+TXN1004,2023-01-17,CUS504,22.0,F,Electronics,199.99,False,New York,4.2
+TXN1005,2023-01-17,CUS505,38.0,Other,Clothing,89.9,False,Miami,4.8
+TXN1006,2023-01-18,CUS506,55.0,F,Home & Garden,120.0,False,Chicago,3.5
+TXN1007,2023-01-19,CUS507,29.0,M,Electronics,899.0,True,Los Angeles,1.5
+TXN1008,2023-01-20,CUS508,36.0,F,Clothing,35.0,False,New York,4.0
+TXN1009,2023-01-20,CUS509,41.0,M,Electronics,450.0,False,Miami,5.0
+TXN1010,2023-01-21,CUS510,31.0,F,Home & Garden,65.5,False,Chicago,4.2

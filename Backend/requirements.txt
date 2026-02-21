@@ -1,0 +1,26 @@
+# EVA - Backend Requirements
+
+# Core Backend Framework
+fastapi==0.115.8
+uvicorn==0.34.0
+pydantic==2.10.6
+
+# HTTP/File Parsing
+python-multipart==0.0.20
+
+# Data Science & Processing
+pandas==2.2.3
+numpy==2.0.2
+pyarrow==19.0.0
+
+# Orchestration & LLM Calling
+langgraph==0.2.73
+langchain-core==0.3.35
+langchain-ollama==1.0.1
+
+# ML Layers (For later phases)
+scikit-learn==1.6.1
+statsmodels==0.14.4
+
+# Streamlit UI (Frontend)
+streamlit==1.42.0

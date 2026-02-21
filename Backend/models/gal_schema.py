@@ -18,32 +18,33 @@ class UserIntentRecord(BaseModel):
     analytical_goal: str = Field(description="Prediction, explanation, segmentation, anomaly detection, monitoring, or reporting")
     decision_supported: str = Field(description="The real-world decision the analysis is meant to support")
     stakeholder_type: str = Field(description="Student, business owner, researcher, analyst, manager")
-    selected_target: Optional[str] = Field(description="The selected target variable if applicable")
+    selected_target: Optional[str] = Field(default=None, description="The selected target variable if applicable")
     interpretability_priority: str = Field(description="How important is it that results be explainable vs. just accurate")
     constraints: List[str] = Field(description="Constraints like time, simplicity, reporting requirements")
     recorded_at: datetime = Field(default_factory=datetime.utcnow)
 
 # --- GAL Section 3: Data Integrity Record ---
 class ModificationRecord(BaseModel):
-    problem: str
+    problem: str = Field(description="The data quality problem found")
     impact: str = Field(description="Why it matters for this specific analysis")
-    strategy_chosen: str
-    alternatives_rejected: str
-    effect: str = Field(description="Rows affected, columns changed, etc.")
-    confidence: str = Field(description="Confidence level that the chosen strategy was correct")
+    strategy_chosen: str = Field(description="The fix applied")
+    alternatives_rejected: str = Field(default="", description="Other options considered but not used")
+    effect: str = Field(default="", description="Rows affected, columns changed, etc.")
+    confidence: str = Field(default="medium", description="Confidence level that the chosen strategy was correct")
 
 class DataIntegrityRecord(BaseModel):
-    modifications: List[ModificationRecord]
-    restricted_columns: Dict[str, str] = Field(description="Columns flagged as restricted and why")
-    validation_result: str = Field(description="Confirmation the repaired dataset represents original process")
+    modifications: List[ModificationRecord] = Field(default_factory=list)
+    restricted_columns: Dict[str, str] = Field(default_factory=dict, description="Columns flagged as restricted and why")
+    validation_result: str = Field(default="pending", description="Confirmation the repaired dataset represents original process")
     recorded_at: datetime = Field(default_factory=datetime.utcnow)
 
 # --- GAL Section 4: Exploratory Findings ---
+# Using permissive types so local LLMs don't choke on strict nested dict requirements
 class ExploratoryFindings(BaseModel):
-    distributions: Dict[str, Dict[str, Any]] = Field(description="Distribution characteristics of key variables")
-    correlations: List[Dict[str, Any]] = Field(description="Correlations between variables and their strength")
-    anomalies: List[str] = Field(description="Anomalies and unusual observations")
-    target_associations: Dict[str, str] = Field(description="Variables most associated with target")
+    distributions: Dict[str, Any] = Field(default_factory=dict, description="Distribution characteristics of key variables")
+    correlations: List[Any] = Field(default_factory=list, description="Correlations between variables and their strength")
+    anomalies: List[str] = Field(default_factory=list, description="Anomalies and unusual observations")
+    target_associations: Dict[str, Any] = Field(default_factory=dict, description="Variables most associated with target")
     recorded_at: datetime = Field(default_factory=datetime.utcnow)
 
 # --- Master GAL Model ---
@@ -54,4 +55,4 @@ class GlobalAnalysisLedger(BaseModel):
     user_intent: Optional[UserIntentRecord] = None
     data_integrity: Optional[DataIntegrityRecord] = None
     exploratory_findings: Optional[ExploratoryFindings] = None
-    # Future sections for Hypothesis, Future Eng, ML models, etc.
+    # Future sections for Hypothesis, Feature Eng, ML models, etc.

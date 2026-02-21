@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 from Backend.agents.llm_core import invoke_agent
 from Backend.models.gal_schema import ExploratoryFindings, DatasetIdentity
@@ -27,6 +28,17 @@ class EPRAgent:
         )
 
     @staticmethod
+    def _sanitize_for_json(obj):
+        """Replace NaN/Inf values with None so the output is JSON-serializable."""
+        if isinstance(obj, dict):
+            return {k: EPRAgent._sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [EPRAgent._sanitize_for_json(v) for v in obj]
+        elif isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+            return None
+        return obj
+
+    @staticmethod
     def execute(dataframe: pd.DataFrame, identity: DatasetIdentity) -> ExploratoryFindings:
         try:
             # Generate pure statistical summary
@@ -41,9 +53,9 @@ class EPRAgent:
             # Obtain the semantic interpretation of the raw metrics
             findings = EPRAgent._interpret_findings(stats, identity)
             
-            # Bind the raw computed data directly to the structural JSON prior to return
-            findings.distributions = desc
-            findings.correlations = [{"matrix": corr}] # Simplified structure mapping for phase 1
+            # Bind the raw computed data — sanitized to remove NaN/Inf
+            findings.distributions = EPRAgent._sanitize_for_json(desc)
+            findings.correlations = [{"matrix": EPRAgent._sanitize_for_json(corr)}]
             
             return findings
             
