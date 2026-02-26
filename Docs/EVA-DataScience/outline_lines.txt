@@ -1,0 +1,88 @@
+1: ## EVA-PRD
+4: ### 📘 PRODUCT REQUIREMENTS **DOCUMENT (PRD)**
+6: ##### **Product Name**
+10: ##### **1. Product Vision**
+29: ##### **2. Problem Statement**
+87: ##### **3. Target Users**
+107: ##### **4. Core Value Proposition**
+120: ##### **5. Product Goals**
+141: ##### **6. Key User Stories**
+168: ##### **7. Functional Requirements**
+308: ##### **8. Non-Functional Requirements**
+341: ##### **9. Product Behavior Flow**
+358: ##### **10. Success Metrics**
+383: ##### **11. Product Differentiation**
+400: ##### **12. Future Expansion (Logical Direction)**
+411: ##### **13. Definition of Success (Important)**
+423: ## EVA-Datascience
+426: # **EVA**
+427: #### Autonomous Data Analysis Assistant
+436: #### **1. Product Vision**
+455: #### **2. The Core Design Insight**
+489: #### **3. Problem Statement**
+518: #### **4. Target Users**
+537: #### **5. The Analyst Workflow — EVA's Operating Sequence**
+780: #### **6. Multi-Agent Reasoning Architecture**
+829: #### **7. Functional Requirements**
+909: #### **8. Non-Functional Requirements**
+961: #### **9. Definition of Success**
+996: #### **10. Future Directions**
+1016: #### **11. Product Rules**
+1041: ## GAL-Global Analysis Ledger
+1044: ### 📘 EVA Core System Document
+1046: ##### **The Global Analysis Ledger (GAL)**
+1154: ##### **SECTION 1 — Dataset Identity**
+1190: ##### **SECTION 2 — User Intent**
+1221: ##### **SECTION 3 — Data Integrity Record**
+1262: ##### **SECTION 4 — Exploratory Findings**
+1294: ### 🚨 SECTION 5 — Investigation & **Hypothesis Engine (NEW — Critical)**
+1388: ##### **SECTION 6 — Feature Reasoning**
+1408: ##### **SECTION 7 — Visualization Plan**
+1430: ##### **SECTION 8 — Evidence Register**
+1450: ##### **SECTION 9 — Recommendations & Decisions**
+1475: ##### **SECTION 10 — Report Memory**
+1490: ### **Operational Rules (Very Important)**
+1507: ### **Why This Changes EVA Completely**
+1522: ## IHE-Investigation & Hypothesis Engine
+1525: ### 📄 EVA System Module Specification
+1527: ##### **Investigation & Hypothesis Engine (IHE)**
+1884: ## Dataset Profiler & Semantic Understanding
+1887: ### 📄 EVA System Module Specification
+1889: ##### **Dataset Profiler & Semantic Understanding (DPSU)**
+2255: ## Question Builder & Intent Inference
+2258: ### 📄 EVA System Module Specification
+2260: ##### **Question Builder & Intent Inference (QBII)**
+2580: ## Feature Engineering RAG Engine
+2583: ##### **Project: EVA — Domain-Aware Feature Engineering RAG** **Engine**
+2585: **Module Name:** Feature Intelligence Engine (FIE)​
+2589: ##### **1. Purpose**
+2617: ##### **2. Problem Statement**
+2652: ##### **3. Objectives**
+2675: ##### **4. User Persona**
+2700: ##### **5. System Inputs**
+2724: ##### **6. System Outputs**
+2751: ##### **7. Functional Components**
+2860: ##### **8. Prompt Design Requirements**
+2886: ##### **9. Knowledge Base Design**
+2911: ##### **10. Data Flow**
+2928: ##### **11. Performance Requirements**
+2945: ##### **12. Failure Handling**
+2968: ##### **13. Evaluation Metrics**
+2979: ##### **14. Out of Scope**
+2993: ##### **15. Tech Stack**
+3027: ##### **16. Deliverables**
+3039: ##### **17. Future Extensions (not in current milestone)**
+3048: ## Data Repair & Integrity Layer
+3051: ### 📄 EVA System Module Specification
+3053: ##### **Data Repair & Integrity Layer (DRIL)**
+3408: ## Visualization Planner & Executor
+3411: ### 📄 EVA System Module Specification
+3413: ##### **Visualization Planner & Executor (VPE)**
+3469: ##### **PART A — Visualization Planner**
+3569: ##### **PART B — Visualization Executor**
+3689: ## Analytical Dashboard Composer
+3692: ### 📄 EVA System Module Specification
+3694: ##### **Analytical Dashboard Composer (ADC)**
+4008: ## Report Generator
+4011: ### 📄 EVA System Module Specification
+4013: ##### **Report Generator (RG)**
