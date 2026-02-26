@@ -119,8 +119,8 @@ Be specific. Cite which rule number informed each decision."""
 
         prompt = f"""Write a COMPLETE, RUNNABLE Python script that cleans a CSV dataset.
 
-INPUT FILE:  {input_path}
-OUTPUT FILE: {output_path}
+INPUT FILE:  Read from `os.environ["EVA_INPUT_PATH"]`
+OUTPUT FILE: Write to `os.environ["EVA_OUTPUT_PATH"]`
 
 CLEANING STRATEGY (follow these decisions exactly):
 {strategy_instructions}
@@ -128,12 +128,12 @@ CLEANING STRATEGY (follow these decisions exactly):
 Overall approach: {strategy.overall_reasoning}
 
 RULES:
-1. Read from INPUT FILE, save cleaned result to OUTPUT FILE.
+1. Read from the environment variable `EVA_INPUT_PATH`, save cleaned result to the environment variable `EVA_OUTPUT_PATH`.
 2. Use pandas for all operations.
 3. Use proper imputation: median for numeric (or KNN if specified), mode for categorical.
 4. Print a brief summary of EVERY change (column, action, rows affected).
 5. Wrap everything in a main() function and call it at the bottom.
-6. Only use pandas and sklearn. No external APIs.
+6. Only use pandas, sklearn, and os. No external APIs.
 7. The script must be COMPLETELY self-contained.
 
 Data Profile:

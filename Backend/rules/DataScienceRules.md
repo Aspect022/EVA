@@ -32,6 +32,7 @@ DOMAIN:
   HEALTHCARE = "healthcare"
   INSURANCE = "insurance"
   GENERAL = "general"
+  UNKNOWN = "unknown"
 
 REGULATORY_MODE:
   STANDARD = "standard"

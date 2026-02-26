@@ -74,8 +74,8 @@ Follow these data science principles:
 {rules}
 
 RULES FOR THE SCRIPT:
-1. Read the dataset from: "{input_path}"
-2. Save results as a JSON file to: "{output_json_path}"
+1. Read the dataset path from the environment variable: `os.environ["EVA_INPUT_PATH"]`
+2. Save results as a JSON file to the environment variable: `os.environ["EVA_OUTPUT_PATH"]`
 3. The JSON must have these top-level keys:
    - "distributions": dict of column_name -> {{mean, median, std, min, max, skew, unique_count}}
    - "correlations": list of dicts {{col_a, col_b, correlation, strength}} for top correlations
@@ -88,7 +88,7 @@ RULES FOR THE SCRIPT:
 7. Handle NaN/Inf values — replace them with None before writing JSON.
 8. Print a brief summary of findings while running.
 9. Wrap everything in a main() function and call it at the bottom.
-10. The script must be completely self-contained. Only use pandas, numpy, scipy, json.
+10. The script must be completely self-contained. Only use pandas, numpy, scipy, json, os.
 
 Dataset Context:
   Domain: {identity.domain}

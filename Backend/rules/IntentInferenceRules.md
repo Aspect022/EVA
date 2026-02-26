@@ -24,7 +24,10 @@ DatasetIdentity:
   dataset_type:             TABULAR | TIME_SERIES | PANEL | NLP | CV | GRAPH | UNKNOWN
   has_target_column:        Boolean
   has_temporal_column:      Boolean
+  has_group_column:         Boolean
+  has_pii_detected:         Boolean
   n_rows:                   Integer or UNKNOWN
+  n_features:               Integer or UNKNOWN
   label_type:               BINARY | MULTICLASS | REGRESSION | NONE | UNKNOWN
   domain_risk_flag:         LOW | MODERATE | HIGH | CRITICAL
   regulatory_exposure_flag: Boolean
