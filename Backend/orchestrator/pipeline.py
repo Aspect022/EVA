@@ -10,6 +10,7 @@ from Backend.agents.qbii_agent import QBIIAgent
 from Backend.agents.dril_agent import DRILAgent
 from Backend.agents.epr_agent import EPRAgent
 from Backend.agents.ihe_agent import IHEAgent
+from Backend.agents.vpe_agent import VPEAgent
 
 # Define state strictly mirroring the active analysis instance
 class EvaState(TypedDict):
@@ -333,6 +334,81 @@ def start_phase_2(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
         "hypotheses_count": len(hypotheses_summary),
         "hypotheses": hypotheses_summary,
     }
+
+
+def start_vpe(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
+    """VPE: Visualization Planner & Executor. Requires hypotheses to exist (Phase 2 complete)."""
+    gal = GALManager.read_gal(session_id)
+
+    if not gal.hypotheses:
+        return {
+            "status": "Blocked",
+            "error": "Hypotheses not generated. Run Phase 2 first.",
+            "session_id": session_id,
+        }
+
+    if not gal.exploratory_findings:
+        return {
+            "status": "Blocked",
+            "error": "No exploratory findings available.",
+            "session_id": session_id,
+        }
+
+    # Load the best available dataset (repaired > snapshot)
+    try:
+        if gal.current_dataset_path and os.path.exists(gal.current_dataset_path):
+            df = pd.read_csv(gal.current_dataset_path)
+        else:
+            csv_file_name = os.path.basename(gal.current_dataset_path) if gal.current_dataset_path else ""
+            snapshot_dir = GALManager.get_dataset_path(session_id, "dataset_snapshot").resolve()
+            df = pd.read_csv(snapshot_dir / csv_file_name)
+    except Exception as e:
+        return {
+            "status": "Failed VPE",
+            "error": f"Could not load dataset: {str(e)}",
+            "session_id": session_id,
+        }
+
+    try:
+        viz_record = VPEAgent.run(
+            identity=gal.dataset_identity,
+            findings=gal.exploratory_findings,
+            session_id=session_id,
+            df=df,
+            intent=gal.user_intent,
+            hypotheses=gal.hypotheses,
+            rules_mode=rules_mode,
+        )
+
+        gal.visualization_plan = viz_record
+        GALManager.write_gal(session_id, gal)
+
+        # Build summary for API response
+        viz_summaries = []
+        if isinstance(viz_record.visualizations, list):
+            for v in viz_record.visualizations:
+                if hasattr(v, "model_dump"):
+                    viz_summaries.append({
+                        "question": v.question,
+                        "chart_type": v.chart_type,
+                        "validation_result": v.validation_result,
+                        "interpretation": v.interpretation,
+                    })
+
+        return {
+            "status": "VPE Complete",
+            "error": None,
+            "session_id": session_id,
+            "visualizations_count": viz_record.total_rendered,
+            "visualizations_failed": viz_record.total_failed,
+            "visualizations": viz_summaries,
+        }
+    except Exception as e:
+        return {
+            "status": "Failed VPE",
+            "error": str(e),
+            "session_id": session_id,
+        }
 
 
 # Legacy compatibility — runs full pipeline without HITL pause

@@ -34,6 +34,8 @@ if 'phase1b_complete' not in st.session_state:
     st.session_state.phase1b_complete = False
 if 'hypotheses_generated' not in st.session_state:
     st.session_state.hypotheses_generated = False
+if 'has_visualizations' not in st.session_state:
+    st.session_state.has_visualizations = False
 
 # --- UI Layout ---
 col1, col2 = st.columns([1, 2])
@@ -42,18 +44,30 @@ with col1:
     st.header("1. Session Setup")
 
     # --- Resume existing session ---
+    api_error = False
     try:
         sessions_resp = requests.get(f"{API_URL}/session/list", timeout=5)
-        sessions_list = sessions_resp.json() if sessions_resp.status_code == 200 else []
+        if sessions_resp.status_code == 200:
+            sessions_list = sessions_resp.json()
+        else:
+            sessions_list = []
+            api_error = True
     except Exception:
         sessions_list = []
+        api_error = True
 
+    if api_error:
+        st.error("⚠️ Cannot connect to the backend API (http://localhost:8000). Please ensure the backend server is running.")
+    elif not sessions_list:
+        st.info("No previous sessions found.")
+    
     if sessions_list:
         def _session_label(s):
             sid = s["session_id"][:8]
             csv = s.get("csv_file") or "no file"
             steps = []
-            if s.get("has_hypotheses"): steps.append("IHE✅")
+            if s.get("has_visualizations"): steps.append("VPE✅")
+            elif s.get("has_hypotheses"): steps.append("IHE✅")
             elif s.get("has_findings"): steps.append("EPR✅")
             elif s.get("has_intent"): steps.append("QBII✅")
             elif s.get("has_identity"): steps.append("DPSU✅")
@@ -73,6 +87,7 @@ with col1:
                 st.session_state.intent_confirmed = s_info.get("has_intent", False) if s_info else False
                 st.session_state.phase1b_complete = s_info.get("has_findings", False) if s_info else False
                 st.session_state.hypotheses_generated = s_info.get("has_hypotheses", False) if s_info else False
+                st.session_state.has_visualizations = s_info.get("has_visualizations", False) if s_info else False
                 # Restore questions state if identity exists but intent not confirmed
                 if s_info and s_info.get("has_identity") and not s_info.get("has_intent"):
                     try:
@@ -101,6 +116,7 @@ with col1:
             st.session_state.intent_confirmed = False
             st.session_state.phase1b_complete = False
             st.session_state.hypotheses_generated = False
+            st.session_state.has_visualizations = False
             st.session_state.pipeline_status = None
             st.success(f"Session Created: {st.session_state.session_id[:8]}...")
         except Exception as e:
@@ -265,7 +281,15 @@ with col1:
 
     if st.session_state.hypotheses_generated:
         st.header("6. ✅ Hypotheses Generated")
-        st.info("Review the hypotheses in the GAL panel →  then approve to proceed to Feature Engineering.")
+        st.info("Review the hypotheses in the GAL panel → then proceed to visualization.")
+
+        st.markdown("---")
+        st.header("7. 📊 Data Visualizer")
+        st.markdown("**Skip Feature Engineering** → Go straight to visualizing your findings and hypotheses.")
+        st.markdown(f"Run the visualizer in a new terminal:")
+        st.code(f"streamlit run Frontend/pages/streamlit_viz.py -- --session_id {st.session_state.session_id}", language="bash")
+        viz_url = f"http://localhost:8502?session_id={st.session_state.session_id}"
+        st.link_button("📊 Open Data Visualizer", viz_url, type="primary")
 
 with col2:
     st.header("Global Analysis Ledger (GAL)")
@@ -277,7 +301,7 @@ with col2:
                 resp.raise_for_status()
                 gal_data = resp.json()
                 
-                tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses"])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Visualizations"])
                 
                 with tab1:
                     overview = {
@@ -375,6 +399,25 @@ with col2:
                             st.markdown("---")
                     else:
                         st.info("No Hypotheses Generated Yet")
+
+                with tab7:
+                    if gal_data.get("visualization_plan"):
+                        viz_data = gal_data["visualization_plan"]
+                        st.markdown(f"**Rendered:** {viz_data.get('total_rendered', 0)} | "
+                                    f"**Failed:** {viz_data.get('total_failed', 0)}")
+                        if viz_data.get("overall_reasoning"):
+                            st.markdown(f"_{viz_data['overall_reasoning']}_")
+                        st.markdown("---")
+                        for i, v in enumerate(viz_data.get("visualizations", [])):
+                            status_icon = "✅" if v.get("validation_result") == "passed" else "❌"
+                            st.markdown(f"### {status_icon} Chart {i+1}: {v.get('chart_type', '?').title()}")
+                            st.markdown(f"**Question:** {v.get('question', 'N/A')}")
+                            st.markdown(f"**Interpretation:** {v.get('interpretation', 'N/A')}")
+                            if v.get("confidence_note"):
+                                st.caption(f"⚠️ {v['confidence_note']}")
+                            st.markdown("---")
+                    else:
+                        st.info("No Visualizations Generated Yet")
                         
             except Exception as e:
                 st.error("Failed to read GAL (it may not be initialized).")

@@ -222,6 +222,55 @@ class HypothesesRecord(BaseModel):
         return v
 
 
+# --- GAL Section 7: Visualization Plan ---
+class VisualizationEntry(BaseModel):
+    """A single planned and executed visualization."""
+    question: str = Field(default="", description="The specific question this chart answers")
+    related_finding: str = Field(default="", description="Reference to Section 4/5 entry this visualizes")
+    variables_used: Optional[List[str] | str] = Field(default_factory=list, description="Columns or features displayed")
+    chart_type: str = Field(default="bar", description="The chart type chosen (bar, scatter, line, histogram, box, heatmap, pie)")
+    chart_type_reasoning: str = Field(default="", description="Why this chart type was selected")
+    audience_calibration: str = Field(default="general", description="Stakeholder type this was calibrated for")
+    interpretation: str = Field(default="", description="Plain-language explanation of what the chart shows")
+    validation_result: str = Field(default="passed", description="passed or failed")
+    confidence_note: str = Field(default="", description="Honest limits of this visual assessment")
+    plotly_config: Optional[Dict[str, Any] | str] = Field(default=None, description="Plotly figure spec as JSON dict for frontend rendering")
+    chart_file_path: Optional[str] = Field(default=None, description="Path to saved chart image in session directory")
+
+    @field_validator("variables_used", mode="before")
+    @classmethod
+    def coerce_lists(cls, v):
+        return _coerce_to_list(v)
+
+    @field_validator("plotly_config", mode="before")
+    @classmethod
+    def coerce_plotly(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return {"raw": v}
+        return v
+
+
+class VisualizationPlanRecord(BaseModel):
+    """GAL Section 7 — all planned and executed visualizations by the VPE."""
+    visualizations: Optional[List[VisualizationEntry] | str] = Field(default_factory=list)
+    total_planned: int = Field(default=0, description="How many visualizations the Planner proposed")
+    total_rendered: int = Field(default=0, description="How many were successfully rendered")
+    total_failed: int = Field(default=0, description="How many failed validation")
+    overall_reasoning: str = Field(default="", description="High-level summary of the visualization strategy")
+    recorded_at: Optional[datetime | str] = Field(default_factory=datetime.utcnow)
+
+    @field_validator("visualizations", mode="before")
+    @classmethod
+    def coerce_visualizations(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [{"question": v}]
+        return v
+
+
 # --- Master GAL Model ---
 class GlobalAnalysisLedger(BaseModel):
     session_id: str
@@ -232,3 +281,4 @@ class GlobalAnalysisLedger(BaseModel):
     data_integrity: Optional[DataIntegrityRecord] = None
     exploratory_findings: Optional[ExploratoryFindings] = None
     hypotheses: Optional[HypothesesRecord] = None
+    visualization_plan: Optional[VisualizationPlanRecord] = None

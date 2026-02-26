@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from Backend.storage.gal_manager import GALManager
-from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2
+from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_vpe
 
 import traceback
 from typing import Optional, Dict, List
@@ -23,6 +23,7 @@ class SessionInfo(BaseModel):
     has_integrity: bool = False
     has_findings: bool = False
     has_hypotheses: bool = False
+    has_visualizations: bool = False
     csv_file: Optional[str] = None
 
 @router.get("/list", response_model=List[SessionInfo])
@@ -50,6 +51,7 @@ def list_sessions():
                 session_id=entry.name,
                 has_identity=gal.dataset_identity is not None,
                 has_intent=gal.user_intent is not None and gal.user_intent.user_confirmed,
+                has_visualizations=gal.visualization_plan is not None,
                 has_integrity=gal.data_integrity is not None,
                 has_findings=gal.exploratory_findings is not None,
                 has_hypotheses=gal.hypotheses is not None,
@@ -191,6 +193,27 @@ def execute_phase_2(session_id: str, rules_mode: str = "full"):
     try:
         result = start_phase_2(session_id, rules_mode=rules_mode)
         return Phase2Response(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- VPE: Visualization Planner & Executor ---
+
+class VPEResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    visualizations_count: int = 0
+    visualizations_failed: int = 0
+    visualizations: List[Dict] = []
+
+@router.post("/{session_id}/execute/vpe", response_model=VPEResponse)
+def execute_vpe(session_id: str, rules_mode: str = "full"):
+    """Runs VPE: plans and generates visualizations from findings & hypotheses. Skips FIE."""
+    try:
+        result = start_vpe(session_id, rules_mode=rules_mode)
+        return VPEResponse(**result)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
