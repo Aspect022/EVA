@@ -23,3 +23,8 @@ ENV/
 Thumbs.db
 Desktop.ini
 .DS_Store
+# Backups
+*_backup_v2.md
+
+# Virtual environment
+eva_env/
