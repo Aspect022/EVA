@@ -1,0 +1,88 @@
+## EVA-PRD
+### 📘 PRODUCT REQUIREMENTS **DOCUMENT (PRD)**
+##### **Product Name**
+##### **1. Product Vision**
+##### **2. Problem Statement**
+##### **3. Target Users**
+##### **4. Core Value Proposition**
+##### **5. Product Goals**
+##### **6. Key User Stories**
+##### **7. Functional Requirements**
+##### **8. Non-Functional Requirements**
+##### **9. Product Behavior Flow**
+##### **10. Success Metrics**
+##### **11. Product Differentiation**
+##### **12. Future Expansion (Logical Direction)**
+##### **13. Definition of Success (Important)**
+## EVA-Datascience
+# **EVA**
+#### Autonomous Data Analysis Assistant
+#### **1. Product Vision**
+#### **2. The Core Design Insight**
+#### **3. Problem Statement**
+#### **4. Target Users**
+#### **5. The Analyst Workflow — EVA's Operating Sequence**
+#### **6. Multi-Agent Reasoning Architecture**
+#### **7. Functional Requirements**
+#### **8. Non-Functional Requirements**
+#### **9. Definition of Success**
+#### **10. Future Directions**
+#### **11. Product Rules**
+## GAL-Global Analysis Ledger
+### 📘 EVA Core System Document
+##### **The Global Analysis Ledger (GAL)**
+##### **SECTION 1 — Dataset Identity**
+##### **SECTION 2 — User Intent**
+##### **SECTION 3 — Data Integrity Record**
+##### **SECTION 4 — Exploratory Findings**
+### 🚨 SECTION 5 — Investigation & **Hypothesis Engine (NEW — Critical)**
+##### **SECTION 6 — Feature Reasoning**
+##### **SECTION 7 — Visualization Plan**
+##### **SECTION 8 — Evidence Register**
+##### **SECTION 9 — Recommendations & Decisions**
+##### **SECTION 10 — Report Memory**
+### **Operational Rules (Very Important)**
+### **Why This Changes EVA Completely**
+## IHE-Investigation & Hypothesis Engine
+### 📄 EVA System Module Specification
+##### **Investigation & Hypothesis Engine (IHE)**
+## Dataset Profiler & Semantic Understanding
+### 📄 EVA System Module Specification
+##### **Dataset Profiler & Semantic Understanding (DPSU)**
+## Question Builder & Intent Inference
+### 📄 EVA System Module Specification
+##### **Question Builder & Intent Inference (QBII)**
+## Feature Engineering RAG Engine
+##### **Project: EVA — Domain-Aware Feature Engineering RAG** **Engine**
+**Module Name:** Feature Intelligence Engine (FIE)​
+##### **1. Purpose**
+##### **2. Problem Statement**
+##### **3. Objectives**
+##### **4. User Persona**
+##### **5. System Inputs**
+##### **6. System Outputs**
+##### **7. Functional Components**
+##### **8. Prompt Design Requirements**
+##### **9. Knowledge Base Design**
+##### **10. Data Flow**
+##### **11. Performance Requirements**
+##### **12. Failure Handling**
+##### **13. Evaluation Metrics**
+##### **14. Out of Scope**
+##### **15. Tech Stack**
+##### **16. Deliverables**
+##### **17. Future Extensions (not in current milestone)**
+## Data Repair & Integrity Layer
+### 📄 EVA System Module Specification
+##### **Data Repair & Integrity Layer (DRIL)**
+## Visualization Planner & Executor
+### 📄 EVA System Module Specification
+##### **Visualization Planner & Executor (VPE)**
+##### **PART A — Visualization Planner**
+##### **PART B — Visualization Executor**
+## Analytical Dashboard Composer
+### 📄 EVA System Module Specification
+##### **Analytical Dashboard Composer (ADC)**
+## Report Generator
+### 📄 EVA System Module Specification
+##### **Report Generator (RG)**

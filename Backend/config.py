@@ -1,0 +1,27 @@
+import json
+import os
+from pydantic import BaseModel, Field
+
+CONFIG_FILE_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+
+class LLMSettings(BaseModel):
+    provider: str = Field(default="ollama")
+    primary_model: str = Field(default="gpt-oss:120b-cloud")
+    secondary_model: str = Field(default="llama3:latest")
+    temperature: float = Field(default=0.0)
+    base_url: str = Field(default="http://localhost:11434")
+
+class Settings(BaseModel):
+    llm: LLMSettings = Field(default_factory=LLMSettings)
+
+def load_settings() -> Settings:
+    if os.path.exists(CONFIG_FILE_PATH):
+        try:
+            with open(CONFIG_FILE_PATH, "r") as f:
+                data = json.load(f)
+                return Settings(**data)
+        except Exception as e:
+            print(f"Warning: Failed to load config.json: {e}. Using defaults.")
+    return Settings()
+
+settings = load_settings()

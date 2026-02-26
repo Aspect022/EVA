@@ -3,12 +3,26 @@ import json
 import re
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
+from Backend.config import settings
 
 # Use explicitly fast models for reasoning
 def get_llm():
-    # Connecting to local Ollama instance running on default port 11434
-    model_name = os.getenv("OLLAMA_MODEL", "gpt-oss:120b-cloud")
-    return ChatOllama(model=model_name, temperature=0)
+    # Primary model connection
+    primary_llm = ChatOllama(
+        model=settings.llm.primary_model,
+        temperature=settings.llm.temperature,
+        base_url=settings.llm.base_url
+    )
+    
+    # Secondary model fallback connection
+    fallback_llm = ChatOllama(
+        model=settings.llm.secondary_model,
+        temperature=settings.llm.temperature,
+        base_url=settings.llm.base_url
+    )
+    
+    # Automatically switch to secondary model if primary fails
+    return primary_llm.with_fallbacks([fallback_llm])
 
 
 def _extract_json(text: str) -> dict:

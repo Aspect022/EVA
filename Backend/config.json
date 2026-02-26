@@ -1,0 +1,9 @@
+{
+  "llm": {
+    "provider": "ollama",
+    "primary_model": "gpt-oss:120b-cloud",
+    "secondary_model": "llama3:latest",
+    "temperature": 0.0,
+    "base_url": "http://localhost:11434"
+  }
+}
