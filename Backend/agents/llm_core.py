@@ -241,10 +241,31 @@ def _build_example_json(pydantic_schema) -> str:
     return json.dumps(example, indent=2)
     
 
-def invoke_agent(system_prompt: str, user_prompt: str, pydantic_schema=None, model_type: str = "primary"):
-    """Generic wrapper for invoking the LLM with structured output."""
+def invoke_agent(system_prompt: str, user_prompt: str, pydantic_schema=None, model_type: str = "primary", rag_context: str = "", domain: str = "UNKNOWN", risk_tier: str = "UNKNOWN", debug_rag: bool = False):
+    """Generic wrapper for invoking the LLM with structured output and optional RAG context."""
     llm = get_llm(model_type)
     
+    # Inject RAG context into system prompt if provided
+    if rag_context:
+        rag_block = (
+            f"\n\n=== DOMAIN INTELLIGENCE (ADVISORY CONTEXT) ===\n"
+            f"Domain: {domain}\n"
+            f"Risk Tier: {risk_tier}\n\n"
+            f"{rag_context}\n\n"
+            f"=== GOVERNANCE RULES ARE AUTHORITATIVE ===\n"
+            f"- Do NOT override risk_tier\n"
+            f"- Do NOT override regulatory_mode\n"
+            f"- Do NOT override interpretability_tier\n"
+            f"- Do NOT invent new enum values\n"
+            f"- Deterministic governance logic takes precedence\n"
+        )
+        system_prompt = system_prompt + rag_block
+        
+        if debug_rag:
+            print("----- RAG CONTEXT LOADED -----")
+            print(rag_block)
+            print("--------------------------------")
+
     if pydantic_schema:
         # Build a concrete JSON example for the model to follow
         example_json = _build_example_json(pydantic_schema)
