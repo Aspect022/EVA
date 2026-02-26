@@ -13,9 +13,14 @@ class LLMSettings(BaseModel):
     coder_model: str = Field(default="deepseek-v3.1:671b-cloud")
     temperature: float = Field(default=0.0)
     base_url: str = Field(default="http://localhost:11434")
+    timeout: int = Field(default=120)
+
+class ExecutionSettings(BaseModel):
+    default_timeout: int = Field(default=300)
 
 class Settings(BaseModel):
     llm: LLMSettings = Field(default_factory=LLMSettings)
+    execution: ExecutionSettings = Field(default_factory=ExecutionSettings)
 
 def load_settings() -> Settings:
     if os.path.exists(CONFIG_FILE_PATH):

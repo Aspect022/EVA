@@ -1,0 +1,16 @@
+{
+  "llm": {
+    "provider": "ollama",
+    "primary_model": "gpt-oss:120b-cloud",
+    "secondary_model": "minimax-m2:cloud",
+    "reasoning_model": "deepseek-v3.1:671b-cloud",
+    "fast_reasoning_model": "glm-4.6:cloud",
+    "coder_model": "deepseek-v3.1:671b-cloud",
+    "temperature": 0.0,
+    "base_url": "http://localhost:11434",
+    "timeout": 180
+  },
+  "execution": {
+    "default_timeout": 500
+  }
+}

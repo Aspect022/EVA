@@ -24,14 +24,16 @@ def get_llm(model_type: str = "primary"):
     requested_llm = ChatOllama(
         model=model_name,
         temperature=settings.llm.temperature,
-        base_url=settings.llm.base_url
+        base_url=settings.llm.base_url,
+        timeout=settings.llm.timeout
     )
     
     # Fallback to secondary model if the requested one fails
     fallback_llm = ChatOllama(
         model=settings.llm.secondary_model,
         temperature=settings.llm.temperature,
-        base_url=settings.llm.base_url
+        base_url=settings.llm.base_url,
+        timeout=settings.llm.timeout
     )
     
     return requested_llm.with_fallbacks([fallback_llm])

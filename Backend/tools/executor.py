@@ -44,8 +44,11 @@ class CodeExecutor:
         input_csv_path: str,
         output_csv_path: str,
         script_name: Optional[str] = None,
-        timeout_seconds: int = 120,
+        timeout_seconds: Optional[int] = None,
     ) -> ExecutionResult:
+        from Backend.config import settings
+        if timeout_seconds is None:
+            timeout_seconds = settings.execution.default_timeout
         # Resolve ALL paths to absolute to avoid cwd-relative doubling
         scripts_dir = GALManager.get_dataset_path(session_id, "scripts").resolve()
         scripts_dir.mkdir(parents=True, exist_ok=True)
