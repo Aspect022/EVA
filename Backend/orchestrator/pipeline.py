@@ -9,6 +9,7 @@ from Backend.agents.dpsu_agent import DPSUAgent
 from Backend.agents.qbii_agent import QBIIAgent
 from Backend.agents.dril_agent import DRILAgent
 from Backend.agents.epr_agent import EPRAgent
+from Backend.agents.ihe_agent import IHEAgent
 
 # Define state strictly mirroring the active analysis instance
 class EvaState(TypedDict):
@@ -18,6 +19,7 @@ class EvaState(TypedDict):
     gal_ledger: Optional[GlobalAnalysisLedger]
     status: str
     error: Optional[str]
+    rules_mode: Optional[str]
 
 # --- Node Functions ---
 
@@ -43,7 +45,8 @@ def load_data(state: EvaState) -> EvaState:
 def run_dpsu(state: EvaState) -> EvaState:
     if state.get("error"): return state
     try:
-        identity = DPSUAgent.execute(state["dataframe"])
+        rules_mode = state.get("rules_mode") or "full"
+        identity = DPSUAgent.execute(state["dataframe"], rules_mode=rules_mode)
         gal = state["gal_ledger"]
         gal.dataset_identity = identity
         
@@ -58,7 +61,8 @@ def run_qbii_generate(state: EvaState) -> EvaState:
     if state.get("error"): return state
     try:
         gal = state["gal_ledger"]
-        questions = QBIIAgent.generate_questions(gal.dataset_identity)
+        rules_mode = state.get("rules_mode") or "full"
+        questions = QBIIAgent.generate_questions(gal.dataset_identity, rules_mode=rules_mode)
 
         # Write partial intent with only questions populated
         from Backend.models.gal_schema import UserIntentRecord
@@ -79,12 +83,14 @@ def run_dril(state: EvaState) -> EvaState:
     if state.get("error"): return state
     try:
         gal = state["gal_ledger"]
+        rules_mode = state.get("rules_mode") or "full"
         repaired_df, integrity_record = DRILAgent.execute(
             dataframe=state["dataframe"],
             identity=gal.dataset_identity,
             session_id=state["session_id"],
             csv_file_name=state["csv_file_name"],
             intent=gal.user_intent,
+            rules_mode=rules_mode,
         )
         gal.data_integrity = integrity_record
 
@@ -103,12 +109,14 @@ def run_epr(state: EvaState) -> EvaState:
     if state.get("error"): return state
     try:
         gal = state["gal_ledger"]
+        rules_mode = state.get("rules_mode") or "full"
         findings = EPRAgent.execute(
             dataframe=state["dataframe"],
             identity=gal.dataset_identity,
             session_id=state["session_id"],
             csv_file_name=state["csv_file_name"],
             intent=gal.user_intent,
+            rules_mode=rules_mode,
         )
         gal.exploratory_findings = findings
         
@@ -116,6 +124,31 @@ def run_epr(state: EvaState) -> EvaState:
         return {**state, "gal_ledger": gal, "status": "Phase 1 Complete"}
     except Exception as e:
         return {**state, "error": str(e), "status": "Failed EPR"}
+
+
+def run_ihe(state: EvaState) -> EvaState:
+    """Phase 2: Generate hypotheses from exploratory findings."""
+    if state.get("error"): return state
+    try:
+        gal = state["gal_ledger"]
+        rules_mode = state.get("rules_mode") or "full"
+
+        if not gal.exploratory_findings:
+            return {**state, "error": "No exploratory findings. Run Phase 1b first.", "status": "Failed IHE"}
+
+        hypotheses_record = IHEAgent.execute(
+            identity=gal.dataset_identity,
+            findings=gal.exploratory_findings,
+            intent=gal.user_intent,
+            integrity=gal.data_integrity,
+            rules_mode=rules_mode,
+        )
+        gal.hypotheses = hypotheses_record
+
+        GALManager.write_gal(state["session_id"], gal)
+        return {**state, "gal_ledger": gal, "status": "Awaiting Hypothesis Review"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed IHE"}
 
 
 # --- Build Graphs ---
@@ -144,8 +177,17 @@ phase_1b_workflow.add_edge("run_epr", END)
 
 phase_1b_app = phase_1b_workflow.compile()
 
+# Phase 2: IHE hypothesis generation (stops for HITL review)
+phase_2_workflow = StateGraph(EvaState)
+phase_2_workflow.add_node("run_ihe", run_ihe)
 
-def start_phase_1a(session_id: str, csv_file_name: str) -> Dict[str, Any]:
+phase_2_workflow.add_edge(START, "run_ihe")
+phase_2_workflow.add_edge("run_ihe", END)
+
+phase_2_app = phase_2_workflow.compile()
+
+
+def start_phase_1a(session_id: str, csv_file_name: str, rules_mode: str = "full") -> Dict[str, Any]:
     """Phase 1a: Profile dataset + generate user questions. Returns questions."""
     initial_state = {
         "session_id": session_id,
@@ -154,6 +196,7 @@ def start_phase_1a(session_id: str, csv_file_name: str) -> Dict[str, Any]:
         "gal_ledger": None,
         "status": "Initialized",
         "error": None,
+        "rules_mode": rules_mode,
     }
     
     final_state = phase_1a_app.invoke(initial_state)
@@ -179,7 +222,7 @@ def start_phase_1a(session_id: str, csv_file_name: str) -> Dict[str, Any]:
     }
 
 
-def submit_user_answers(session_id: str, answers: Dict[str, str]) -> Dict[str, Any]:
+def submit_user_answers(session_id: str, answers: Dict[str, str], rules_mode: str = "full") -> Dict[str, Any]:
     """Phase 1 bridge: user submits answers -> QBII infers intent."""
     try:
         gal = GALManager.read_gal(session_id)
@@ -193,6 +236,7 @@ def submit_user_answers(session_id: str, answers: Dict[str, str]) -> Dict[str, A
             identity=gal.dataset_identity,
             questions=gal.user_intent.generated_questions,
             user_answers=answers,
+            rules_mode=rules_mode,
         )
         intent.user_confirmed = True
         gal.user_intent = intent
@@ -208,7 +252,7 @@ def submit_user_answers(session_id: str, answers: Dict[str, str]) -> Dict[str, A
         return {"status": "Failed Intent Inference", "error": str(e), "session_id": session_id}
 
 
-def start_phase_1b(session_id: str, csv_file_name: str) -> Dict[str, Any]:
+def start_phase_1b(session_id: str, csv_file_name: str, rules_mode: str = "full") -> Dict[str, Any]:
     """Phase 1b: Data repair + Exploration. Requires user intent to exist."""
     gal = GALManager.read_gal(session_id)
 
@@ -231,6 +275,7 @@ def start_phase_1b(session_id: str, csv_file_name: str) -> Dict[str, Any]:
         "gal_ledger": gal,
         "status": "Starting Phase 1b",
         "error": None,
+        "rules_mode": rules_mode,
     }
 
     final_state = phase_1b_app.invoke(initial_state)
@@ -239,6 +284,54 @@ def start_phase_1b(session_id: str, csv_file_name: str) -> Dict[str, Any]:
         "status": final_state["status"],
         "error": final_state.get("error"),
         "session_id": session_id,
+    }
+
+
+def start_phase_2(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
+    """Phase 2: IHE hypothesis generation. Requires Phase 1b to be complete."""
+    gal = GALManager.read_gal(session_id)
+
+    if not gal.exploratory_findings:
+        return {
+            "status": "Blocked",
+            "error": "Exploratory findings not available. Run Phase 1b first.",
+            "session_id": session_id,
+        }
+
+    # Determine csv_file_name from current_dataset_path
+    csv_file_name = ""
+    if gal.current_dataset_path:
+        csv_file_name = os.path.basename(gal.current_dataset_path)
+
+    initial_state = {
+        "session_id": session_id,
+        "csv_file_name": csv_file_name,
+        "dataframe": None,
+        "gal_ledger": gal,
+        "status": "Starting Phase 2",
+        "error": None,
+        "rules_mode": rules_mode,
+    }
+
+    final_state = phase_2_app.invoke(initial_state)
+
+    # Extract hypotheses summary for the API response
+    hypotheses_summary = []
+    result_gal = final_state.get("gal_ledger")
+    if result_gal and result_gal.hypotheses and isinstance(result_gal.hypotheses.hypotheses, list):
+        for h in result_gal.hypotheses.hypotheses:
+            hypotheses_summary.append({
+                "observation": h.observation_plain_language,
+                "hypothesis": h.hypothesis,
+                "plausibility": h.plausibility,
+            })
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "hypotheses_count": len(hypotheses_summary),
+        "hypotheses": hypotheses_summary,
     }
 
 

@@ -17,14 +17,16 @@ from Backend.models.gal_schema import (
 )
 from Backend.tools.executor import CodeExecutor
 
-# Path to the rules file
-RULES_PATH = Path(__file__).parent.parent / "rules" / "DataScienceRules.md"
+# Path to the rules files
+RULES_DIR = Path(__file__).parent.parent / "rules"
 
 
-def _load_rules() -> str:
-    """Load the DataScienceRules.md file for the Strategy Agent."""
-    if RULES_PATH.exists():
-        return RULES_PATH.read_text(encoding="utf-8")
+def _load_rules(rules_mode: str = "full") -> str:
+    """Load the DataScienceRules file."""
+    filename = "DataScienceRules.lite.md" if rules_mode == "lite" else "DataScienceRules.md"
+    path = RULES_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
     return "(No rules file found — use conservative defaults.)"
 
 
@@ -65,8 +67,9 @@ class EPRAgent:
         intent: UserIntentRecord | None,
         input_path: str,
         output_json_path: str,
+        rules_mode: str = "full",
     ) -> str:
-        rules = _load_rules()
+        rules = _load_rules(rules_mode)
 
         intent_context = ""
         if intent:
@@ -123,10 +126,11 @@ Respond with ONLY the Python script. No markdown, no explanation."""
 
     @staticmethod
     def _interpret_findings(
-        findings_json: dict, identity: DatasetIdentity, intent: UserIntentRecord | None
+        findings_json: dict, identity: DatasetIdentity, intent: UserIntentRecord | None,
+        rules_mode: str = "full",
     ) -> ExplorationInterpretation:
         """LLM reads raw statistics + rules → adds semantic interpretation with WHY."""
-        rules = _load_rules()
+        rules = _load_rules(rules_mode)
 
         intent_block = ""
         if intent:
@@ -180,6 +184,7 @@ Your job:
         session_id: str,
         csv_file_name: str,
         intent: UserIntentRecord | None = None,
+        rules_mode: str = "full",
     ) -> ExploratoryFindings:
         try:
             from Backend.storage.gal_manager import GALManager
@@ -194,7 +199,7 @@ Your job:
 
             # 1. Generate and execute the exploration script
             script_code = EPRAgent._generate_exploration_script(
-                dataframe, identity, intent, input_path, output_json_path
+                dataframe, identity, intent, input_path, output_json_path, rules_mode
             )
 
             exec_result = CodeExecutor.execute(
@@ -222,7 +227,7 @@ Your job:
 
             # 3. Interpret with rules + intent (clean model, no ScriptExecution)
             if findings_json:
-                interpretation = EPRAgent._interpret_findings(findings_json, identity, intent)
+                interpretation = EPRAgent._interpret_findings(findings_json, identity, intent, rules_mode)
             else:
                 desc = dataframe.describe(include="all").to_dict()
                 numeric_df = dataframe.select_dtypes(include=["float64", "int64"])
@@ -231,7 +236,7 @@ Your job:
                     "distributions": EPRAgent._sanitize_for_json(desc),
                     "correlations": [{"matrix": EPRAgent._sanitize_for_json(corr)}],
                 }
-                interpretation = EPRAgent._interpret_findings(fallback, identity, intent)
+                interpretation = EPRAgent._interpret_findings(fallback, identity, intent, rules_mode)
 
             # 4. Assemble final GAL record (Python-only)
             findings = ExploratoryFindings(

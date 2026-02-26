@@ -3,13 +3,15 @@ from pathlib import Path
 from Backend.agents.llm_core import invoke_agent
 from Backend.models.gal_schema import DatasetIdentity
 
-# Path to the rules file
-RULES_PATH = Path(__file__).parent.parent / "rules" / "DomainAnalysisRules.lite.md"
+# Path to the rules files
+RULES_DIR = Path(__file__).parent.parent / "rules"
 
-def _load_rules() -> str:
-    """Load the DomainAnalysisRules.md file for the DPSU Agent."""
-    if RULES_PATH.exists():
-        return RULES_PATH.read_text(encoding="utf-8")
+def _load_rules(rules_mode: str = "full") -> str:
+    """Load the DomainAnalysisRules file for the DPSU Agent."""
+    filename = "DomainAnalysisRules.lite.md" if rules_mode == "lite" else "DomainAnalysisRules.md"
+    path = RULES_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
     return "(No rules file found.)"
 
 class DPSUAgent:
@@ -19,8 +21,8 @@ class DPSUAgent:
     """
     
     @staticmethod
-    def execute(dataframe: pd.DataFrame) -> DatasetIdentity:
-        rules = _load_rules()
+    def execute(dataframe: pd.DataFrame, rules_mode: str = "full") -> DatasetIdentity:
+        rules = _load_rules(rules_mode)
         system_prompt = f"""You are EVA's Dataset Profiler & Semantic Understanding (DPSU) module.
 You MUST respond in English only.
 
@@ -57,3 +59,4 @@ You are strictly observing and writing to the Global Analysis Ledger (GAL)."""
             
         except Exception as e:
             raise Exception(f"DPSU Agent execution failed: {str(e)}")
+

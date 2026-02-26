@@ -9,8 +9,20 @@ from Backend.models.gal_schema import (
 # Path to the rules files
 RULES_DIR = Path(__file__).parent.parent / "rules"
 
-def _load_rules(filename: str) -> str:
+def _load_rules(filename: str, rules_mode: str = "full") -> str:
     """Load the specified rules file for the QBII Agent."""
+    # If rules_mode is lite, try to load the lite variant
+    if rules_mode == "lite" and not filename.endswith(".lite.md"):
+        lite_name = filename.replace(".md", ".lite.md")
+        lite_path = RULES_DIR / lite_name
+        if lite_path.exists():
+            return lite_path.read_text(encoding="utf-8")
+    # If rules_mode is full, load the full variant
+    if rules_mode == "full" and filename.endswith(".lite.md"):
+        full_name = filename.replace(".lite.md", ".md")
+        full_path = RULES_DIR / full_name
+        if full_path.exists():
+            return full_path.read_text(encoding="utf-8")
     path = RULES_DIR / filename
     if path.exists():
         return path.read_text(encoding="utf-8")
@@ -31,8 +43,8 @@ class QBIIAgent:
     # Phase A — Generate Questions
     # ------------------------------------------------------------------
     @staticmethod
-    def generate_questions(identity: DatasetIdentity) -> list[GeneratedQuestion]:
-        rules = _load_rules("QuestionBuilderRules.lite.md")
+    def generate_questions(identity: DatasetIdentity, rules_mode: str = "full") -> list[GeneratedQuestion]:
+        rules = _load_rules("QuestionBuilderRules.md", rules_mode)
         system_prompt = f"""You are EVA's Question Builder & Intent Inference (QBII) module.
 You MUST respond in English only.
 
@@ -87,8 +99,9 @@ an array of objects with keys: question, question_type, why_asked."""
         identity: DatasetIdentity,
         questions: list[GeneratedQuestion],
         user_answers: dict[str, str],
+        rules_mode: str = "full",
     ) -> UserIntentRecord:
-        rules = _load_rules("IntentInferenceRules.lite.md")
+        rules = _load_rules("IntentInferenceRules.md", rules_mode)
         system_prompt = f"""You are EVA's Question Builder & Intent Inference (QBII) module.
 You MUST respond in English only.
 

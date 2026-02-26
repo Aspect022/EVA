@@ -34,10 +34,10 @@ This phase establishes the foundational architecture, data understanding, user i
 ## Phase 2: Advanced Reasoning & Feature Engineering (🚀 Next Up)
 This phase transitions the system from merely *describing* data to *explaining* patterns and preparing the dataset for modeling. **This is currently the active development phase.**
 
-### 6. IHE - Investigation & Hypothesis Engine (📝 To Be Implemented)
-* **Design Doc:** [06_IHE_Hypothesis_Engine.md](./Mini-Docs/06_IHE_Hypothesis_Engine.md)
-* **Implementation Goal:** Build `ihe_agent.py`. This module must read the findings from EPR and generate plausible real-world hypotheses (with competing theories and plausibility scores).
-* **Dependencies:** Requires an update to `gal_schema.py` to support Section 5 (Hypotheses).
+### 6. IHE - Investigation & Hypothesis Engine (✅ Implemented)
+* **Design Doc:** [06_IHE_Hypothesis_Engine.md](./Docs/EVA-DataScience/Mini-Docs/06_IHE_Hypothesis_Engine.md)
+* **Status:** `ihe_agent.py` is implemented. It reads GAL Sections 1–4, generates multiple plausible real-world hypotheses per significant observation using a reasoning LLM, and writes Section 5 (Hypotheses) to the GAL. Phase 2 API endpoint (`/execute/phase2`) serves as the HITL pause point.
+* **Dependencies:** `gal_schema.py` updated with `HypothesisEntry` and `HypothesesRecord` models. Rules in `IHERules.md`.
 
 ### 7. FIE - Feature Intelligence Engine (📝 To Be Implemented)
 * **Design Doc:** [07_FIE_Feature_Intelligence.md](./Mini-Docs/07_FIE_Feature_Intelligence.md)

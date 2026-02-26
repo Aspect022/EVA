@@ -14,14 +14,16 @@ from Backend.models.gal_schema import (
 )
 from Backend.tools.executor import CodeExecutor
 
-# Path to the rules file
-RULES_PATH = Path(__file__).parent.parent / "rules" / "DataScienceRules.md"
+# Path to the rules files
+RULES_DIR = Path(__file__).parent.parent / "rules"
 
 
-def _load_rules() -> str:
-    """Load the DataScienceRules.md file for the Strategy Agent."""
-    if RULES_PATH.exists():
-        return RULES_PATH.read_text(encoding="utf-8")
+def _load_rules(rules_mode: str = "full") -> str:
+    """Load the DataScienceRules file for the Strategy Agent."""
+    filename = "DataScienceRules.lite.md" if rules_mode == "lite" else "DataScienceRules.md"
+    path = RULES_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
     return "(No rules file found — use conservative defaults.)"
 
 
@@ -58,8 +60,9 @@ class DRILAgent:
         dataframe_summary: str,
         identity: DatasetIdentity,
         intent: UserIntentRecord | None,
+        rules_mode: str = "full",
     ) -> CleaningStrategy:
-        rules = _load_rules()
+        rules = _load_rules(rules_mode)
 
         intent_block = ""
         if intent:
@@ -162,6 +165,7 @@ Respond with ONLY pure Python code. No markdown fences, no explanation."""
         session_id: str,
         csv_file_name: str,
         intent: UserIntentRecord | None = None,
+        rules_mode: str = "full",
     ) -> tuple[pd.DataFrame, DataIntegrityRecord]:
         try:
             from Backend.storage.gal_manager import GALManager
@@ -179,7 +183,7 @@ Respond with ONLY pure Python code. No markdown fences, no explanation."""
             summary = f"Shape: {dataframe.shape}\nMissingness: {missing_pct}\nTypes: {dtypes}"
 
             # 1. Strategy Agent — reason with rules + GAL context
-            strategy = DRILAgent._propose_strategy(summary, identity, intent)
+            strategy = DRILAgent._propose_strategy(summary, identity, intent, rules_mode)
 
             # 2. Code Writer — generate the script from strategy
             script_code = DRILAgent._write_repair_code(
