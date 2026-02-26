@@ -1,3 +1,25 @@
-/.agent
+# EVA Project Ignores
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# EVA Session and Local Config
+/eva_sessions/
 .env
-/eva_sessions
+/.agent/
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
