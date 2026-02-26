@@ -1,0 +1,48 @@
+# Walkthrough: EVA Agents Architecture Rework
+
+## What Changed
+
+The Phase 1 agents were reworked from static, hardcoded logic to **reasoning-driven, script-generating** agents. Docker was intentionally skipped in favor of lightweight local subprocess execution.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| [executor.py](file:///d:/Projects/EVA/Backend/tools/executor.py) | **[NEW]** Local script runner — saves, executes, and captures output from LLM-generated Python scripts |
+| [gal_schema.py](file:///d:/Projects/EVA/Backend/models/gal_schema.py) | Added [GeneratedQuestion](file:///d:/Projects/EVA/Backend/models/gal_schema.py#17-21), [ScriptExecution](file:///d:/Projects/EVA/Backend/models/gal_schema.py#37-44), QBII conversation fields, `current_dataset_path` |
+| [gal_manager.py](file:///d:/Projects/EVA/Backend/storage/gal_manager.py) | Added `scripts/` directory to session initialization |
+| [qbii_agent.py](file:///d:/Projects/EVA/Backend/agents/qbii_agent.py) | **Redesigned** — two-phase: [generate_questions()](file:///d:/Projects/EVA/Backend/agents/qbii_agent.py#23-78) + [infer_intent()](file:///d:/Projects/EVA/Backend/agents/qbii_agent.py#82-126) |
+| [dril_agent.py](file:///d:/Projects/EVA/Backend/agents/dril_agent.py) | **Redesigned** — LLM writes a full repair script, CodeExecutor runs it |
+| [epr_agent.py](file:///d:/Projects/EVA/Backend/agents/epr_agent.py) | **Redesigned** — LLM writes an exploration script, outputs JSON |
+| [pipeline.py](file:///d:/Projects/EVA/Backend/orchestrator/pipeline.py) | Split into Phase 1a (DPSU→QBII) and Phase 1b (DRIL→EPR) with user pause |
+| [session.py](file:///d:/Projects/EVA/Backend/api/routes/session.py) | Added `/execute/phase1a`, `/submit-answers`, `/execute/phase1b` endpoints |
+| [streamlit_app.py](file:///d:/Projects/EVA/Frontend/streamlit_app.py) | Redesigned UI with question form, step-by-step flow, script execution info |
+
+### New User Flow
+
+```mermaid
+graph LR
+    A[Upload CSV] --> B[Start Analysis]
+    B --> C[DPSU profiles dataset]
+    C --> D[QBII generates 3-5 questions]
+    D --> E[User answers questions in UI]
+    E --> F[QBII infers intent]
+    F --> G[DRIL writes & runs repair script]
+    G --> H[EPR writes & runs exploration script]
+    H --> I[GAL fully populated]
+```
+
+### Key Design Decisions
+- **No Docker**: Local `subprocess.run()` keeps it simple. Docker can be added later for ML model training.
+- **Graceful fallback**: If a generated script fails, agents fall back to original data rather than crashing the pipeline.
+- **Full traceability**: Every generated script is saved to `eva_sessions/<id>/scripts/` and its stdout/stderr is stored in the GAL.
+
+## Verification
+
+> [!WARNING]
+> Automated import verification was **blocked by a Windows terminal environment issue** — all Python subprocesses (even `print('hello')`) are terminated with exit code `0xC000013A`. This is a system-level issue, not a code error.
+
+**To verify manually:**
+1. Start backend: `.\.venv\Scripts\python.exe -m uvicorn Backend.api.main:app --reload`
+2. Start frontend: `.\.venv\Scripts\python.exe -m streamlit run Frontend\streamlit_app.py`
+3. Upload [dummy_sales.csv](file:///d:/Projects/EVA/dummy_sales.csv) and follow the new step-by-step flow

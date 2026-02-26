@@ -21,6 +21,7 @@ class GALManager:
         (session_path / "dataset_snapshot").mkdir(exist_ok=True)
         (session_path / "repaired_dataset").mkdir(exist_ok=True)
         (session_path / "learning_view").mkdir(exist_ok=True)
+        (session_path / "scripts").mkdir(exist_ok=True)
         
         gal_path = session_path / "GAL.json"
         
@@ -46,8 +47,6 @@ class GALManager:
     @staticmethod
     def write_gal(session_id: str, ledger: GlobalAnalysisLedger):
         gal_path = SESSIONS_DIR / session_id / "GAL.json"
-        # In a massive production env this would require locks, 
-        # but EVA treats the pipeline linearly via LangGraph.
         with open(gal_path, "w", encoding="utf-8") as f:
             f.write(ledger.model_dump_json(indent=2))
             
