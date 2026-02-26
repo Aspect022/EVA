@@ -6,23 +6,35 @@ from langchain_core.prompts import ChatPromptTemplate
 from Backend.config import settings
 
 # Use explicitly fast models for reasoning
-def get_llm():
-    # Primary model connection
-    primary_llm = ChatOllama(
-        model=settings.llm.primary_model,
+def get_llm(model_type: str = "primary"):
+    """
+    Returns an LLM connection based on the requested role.
+    model_type can be: 'primary', 'reasoning', 'fast_reasoning', 'coder'
+    """
+    if model_type == "reasoning":
+        model_name = settings.llm.reasoning_model
+    elif model_type == "fast_reasoning":
+        model_name = settings.llm.fast_reasoning_model
+    elif model_type == "coder":
+        model_name = settings.llm.coder_model
+    else:
+        model_name = settings.llm.primary_model
+
+    # Primary connection for the requested type
+    requested_llm = ChatOllama(
+        model=model_name,
         temperature=settings.llm.temperature,
         base_url=settings.llm.base_url
     )
     
-    # Secondary model fallback connection
+    # Fallback to secondary model if the requested one fails
     fallback_llm = ChatOllama(
         model=settings.llm.secondary_model,
         temperature=settings.llm.temperature,
         base_url=settings.llm.base_url
     )
     
-    # Automatically switch to secondary model if primary fails
-    return primary_llm.with_fallbacks([fallback_llm])
+    return requested_llm.with_fallbacks([fallback_llm])
 
 
 def _extract_json(text: str) -> dict:
@@ -202,9 +214,9 @@ def _build_example_json(pydantic_schema) -> str:
     return json.dumps(example, indent=2)
     
 
-def invoke_agent(system_prompt: str, user_prompt: str, pydantic_schema=None):
+def invoke_agent(system_prompt: str, user_prompt: str, pydantic_schema=None, model_type: str = "primary"):
     """Generic wrapper for invoking the LLM with structured output."""
-    llm = get_llm()
+    llm = get_llm(model_type)
     
     if pydantic_schema:
         # Build a concrete JSON example for the model to follow

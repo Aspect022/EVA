@@ -98,6 +98,7 @@ Be specific. Cite which rule number informed each decision."""
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             pydantic_schema=CleaningStrategy,
+            model_type="reasoning"
         )
 
     # ------------------------------------------------------------------
@@ -143,6 +144,7 @@ Respond with ONLY pure Python code. No markdown fences, no explanation."""
         result = invoke_agent(
             system_prompt="You are an expert Python data engineer. Output ONLY executable Python code. No markdown, no explanation, just code.",
             user_prompt=prompt,
+            model_type="coder"
         )
 
         code = result.content if hasattr(result, "content") else str(result)

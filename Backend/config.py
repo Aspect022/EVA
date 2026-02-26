@@ -8,6 +8,9 @@ class LLMSettings(BaseModel):
     provider: str = Field(default="ollama")
     primary_model: str = Field(default="gpt-oss:120b-cloud")
     secondary_model: str = Field(default="llama3:latest")
+    reasoning_model: str = Field(default="gpt-oss:120b-cloud")
+    fast_reasoning_model: str = Field(default="llama3:latest")
+    coder_model: str = Field(default="qwen2.5-coder:latest")
     temperature: float = Field(default=0.0)
     base_url: str = Field(default="http://localhost:11434")
 

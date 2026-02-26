@@ -3,6 +3,9 @@
     "provider": "ollama",
     "primary_model": "gpt-oss:120b-cloud",
     "secondary_model": "llama3:latest",
+    "reasoning_model": "gpt-oss:120b-cloud",
+    "fast_reasoning_model": "llama3:latest",
+    "coder_model": "qwen2.5-coder:latest",
     "temperature": 0.0,
     "base_url": "http://localhost:11434"
   }
