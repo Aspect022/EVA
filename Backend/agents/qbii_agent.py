@@ -32,8 +32,9 @@ class QBIIAgent:
     # ------------------------------------------------------------------
     @staticmethod
     def generate_questions(identity: DatasetIdentity) -> list[GeneratedQuestion]:
-        rules = _load_rules("QuestionBuilderRules.md")
+        rules = _load_rules("QuestionBuilderRules.lite.md")
         system_prompt = f"""You are EVA's Question Builder & Intent Inference (QBII) module.
+You MUST respond in English only.
 
 You MUST follow these Question Builder Rules:
 
@@ -87,8 +88,9 @@ an array of objects with keys: question, question_type, why_asked."""
         questions: list[GeneratedQuestion],
         user_answers: dict[str, str],
     ) -> UserIntentRecord:
-        rules = _load_rules("IntentInferenceRules.md")
+        rules = _load_rules("IntentInferenceRules.lite.md")
         system_prompt = f"""You are EVA's Question Builder & Intent Inference (QBII) module.
+You MUST respond in English only.
 
 You have already asked the user a set of questions. Their answers are provided below.
 Your job is to infer a structured analytical intent from their responses combined with

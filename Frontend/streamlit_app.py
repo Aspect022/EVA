@@ -69,7 +69,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/phase1a",
                         params=params,
-                        timeout=120,
+                        timeout=800,
                     )
                     if resp.status_code != 200:
                         try:
@@ -87,7 +87,7 @@ with col1:
                             st.success("EVA has questions for you!")
                             st.rerun()
                 except requests.exceptions.Timeout:
-                    st.error("Phase 1a timed out after 120 seconds.")
+                    st.error("Phase 1a timed out after 800 seconds.")
                 except Exception as e:
                     st.error(f"Execution failed: {str(e)}")
 
@@ -115,7 +115,7 @@ with col1:
                         resp = requests.post(
                             f"{API_URL}/session/{st.session_state.session_id}/submit-answers",
                             json={"answers": answers},
-                            timeout=120,
+                            timeout=800,
                         )
                         if resp.status_code != 200:
                             st.error(f"Error: {resp.text}")
@@ -125,7 +125,7 @@ with col1:
                                 st.error(f"Intent Error: {data['error']}")
                             else:
                                 st.session_state.intent_confirmed = True
-                                st.success(f"Intent confirmed: **{data.get('analytical_goal', 'unknown')}**")
+                                st.success(f"Intent confirmed: **{data.get('primary_objective', 'unknown')}**")
                                 st.rerun()
                     except Exception as e:
                         st.error(f"Failed: {str(e)}")
@@ -142,7 +142,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/phase1b",
                         params=params,
-                        timeout=180,
+                        timeout=800,
                     )
                     if resp.status_code != 200:
                         try:
@@ -158,7 +158,7 @@ with col1:
                             st.session_state.pipeline_status = data["status"]
                             st.success("Phase 1 Complete!")
                 except requests.exceptions.Timeout:
-                    st.error("Phase 1b timed out.")
+                    st.error("Phase 1b timed out after 400 seconds.")
                 except Exception as e:
                     st.error(f"Execution failed: {str(e)}")
 
@@ -191,7 +191,7 @@ with col2:
                 with tab3:
                     if gal_data.get("user_intent"):
                         intent = gal_data["user_intent"]
-                        if intent.get("analytical_goal") == "pending_user_input":
+                        if intent.get("primary_objective") == "pending_user_input":
                             st.warning("Waiting for your answers to the questions on the left.")
                             if intent.get("generated_questions"):
                                 st.markdown("**Generated Questions:**")

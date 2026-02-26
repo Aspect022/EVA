@@ -8,7 +8,7 @@
     "coder_model": "deepseek-v3.1:671b-cloud",
     "temperature": 0.0,
     "base_url": "http://localhost:11434",
-    "timeout": 180
+    "timeout": 360
   },
   "execution": {
     "default_timeout": 800

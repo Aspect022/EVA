@@ -3,8 +3,8 @@ import json
 import re
 import pandas as pd
 from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import Dict, Any, List
+from pydantic import BaseModel, Field, field_validator
+from typing import Dict, Any, List, Optional
 
 from Backend.agents.llm_core import invoke_agent
 from Backend.models.gal_schema import (
@@ -12,6 +12,8 @@ from Backend.models.gal_schema import (
     DatasetIdentity,
     UserIntentRecord,
     ScriptExecution,
+    _coerce_to_list,
+    _coerce_to_dict,
 )
 from Backend.tools.executor import CodeExecutor
 
@@ -29,11 +31,21 @@ def _load_rules() -> str:
 # --- LLM-facing schema (no script_execution) ---
 class ExplorationInterpretation(BaseModel):
     """What the Interpretation Agent returns — semantic meaning, no execution metadata."""
-    distributions: Dict[str, Any] = Field(default_factory=dict, description="Distribution characteristics of key variables")
-    correlations: List[Any] = Field(default_factory=list, description="Correlations and their strength")
-    anomalies: List[str] = Field(default_factory=list, description="Anomalies and unusual observations")
-    target_associations: Dict[str, Any] = Field(default_factory=dict, description="Variables most associated with target")
-    overall_reasoning: str = Field(default="", description="High-level interpretation of what the data reveals and WHY these patterns matter")
+    distributions: Optional[Dict[str, Any] | str] = Field(default_factory=dict)
+    correlations: Optional[List[Any] | str] = Field(default_factory=list)
+    anomalies: Optional[List[str] | str] = Field(default_factory=list)
+    target_associations: Optional[Dict[str, Any] | str] = Field(default_factory=dict)
+    overall_reasoning: str = Field(default="")
+
+    @field_validator("correlations", "anomalies", mode="before")
+    @classmethod
+    def coerce_lists(cls, v):
+        return _coerce_to_list(v)
+
+    @field_validator("distributions", "target_associations", mode="before")
+    @classmethod
+    def coerce_dicts(cls, v):
+        return _coerce_to_dict(v)
 
 
 class EPRAgent:
@@ -60,7 +72,7 @@ class EPRAgent:
         if intent:
             intent_context = (
                 f"\nUser Intent:\n"
-                f"  Goal: {intent.analytical_goal}\n"
+                f"  Goal: {intent.primary_objective}\n"
                 f"  Target: {intent.selected_target or 'none selected'}\n"
             )
 
@@ -92,7 +104,7 @@ RULES FOR THE SCRIPT:
 
 Dataset Context:
   Domain: {identity.domain}
-  Row Meaning: {identity.row_meaning}
+  Row Meaning: {identity.row_meaning or 'unknown'}
   Columns: {columns}
   Types: {dtypes}
   Shape: {shape}
@@ -100,7 +112,7 @@ Dataset Context:
 Respond with ONLY the Python script. No markdown, no explanation."""
 
         result = invoke_agent(
-            system_prompt="You are an expert Python data scientist. Output ONLY executable Python code. No markdown, no explanation, just code.",
+            system_prompt="You are an expert Python data scientist. You MUST respond in English only. Output ONLY executable Python code. No markdown, no explanation, just code.",
             user_prompt=prompt,
         )
 
@@ -120,11 +132,13 @@ Respond with ONLY the Python script. No markdown, no explanation."""
         if intent:
             intent_block = (
                 f"\n--- USER INTENT ---\n"
-                f"Goal: {intent.analytical_goal}\n"
+                f"Goal: {intent.primary_objective}\n"
                 f"Target: {intent.selected_target or 'none selected'}\n"
             )
 
         system_prompt = f"""You are EVA's Exploration & Pattern Recognition Interpreter.
+You MUST respond in English only.
+Keep your response concise. Do NOT repeat raw data values in your output.
 
 Follow these data science principles:
 {rules}

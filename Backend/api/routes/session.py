@@ -75,7 +75,7 @@ class IntentResponse(BaseModel):
     session_id: str
     status: str
     error: Optional[str] = None
-    analytical_goal: Optional[str] = None
+    primary_objective: Optional[str] = None
     selected_target: Optional[str] = None
 
 @router.post("/{session_id}/submit-answers", response_model=IntentResponse)

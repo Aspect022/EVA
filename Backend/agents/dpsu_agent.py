@@ -4,7 +4,7 @@ from Backend.agents.llm_core import invoke_agent
 from Backend.models.gal_schema import DatasetIdentity
 
 # Path to the rules file
-RULES_PATH = Path(__file__).parent.parent / "rules" / "DomainAnalysisRules.md"
+RULES_PATH = Path(__file__).parent.parent / "rules" / "DomainAnalysisRules.lite.md"
 
 def _load_rules() -> str:
     """Load the DomainAnalysisRules.md file for the DPSU Agent."""
@@ -22,6 +22,7 @@ class DPSUAgent:
     def execute(dataframe: pd.DataFrame) -> DatasetIdentity:
         rules = _load_rules()
         system_prompt = f"""You are EVA's Dataset Profiler & Semantic Understanding (DPSU) module.
+You MUST respond in English only.
 
 You MUST follow these Domain Analysis Rules when making decisions:
 

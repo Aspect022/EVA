@@ -42,25 +42,50 @@ def get_llm(model_type: str = "primary"):
 def _extract_json(text: str) -> dict:
     """
     Robustly extract JSON from LLM output that may contain markdown wrappers,
-    prose preamble, or other non-JSON text around the actual JSON object.
+    prose preamble, truncated output, or other non-JSON text.
     """
+    # 0. Strip <think>...</think> reasoning blocks from DeepSeek/etc.
+    text_clean = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    
     # 1. Try to find JSON inside markdown code blocks
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text_clean, re.DOTALL)
     if match:
         try:
             return json.loads(match.group(1))
         except json.JSONDecodeError:
             pass
     
-    # 2. Try to find a raw JSON object in the text
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
+    # 2. Try to find a raw JSON object in the text (from first { to last })
+    start_idx = text_clean.find("{")
+    end_idx = text_clean.rfind("}")
+    
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        json_str = text_clean[start_idx:end_idx+1]
         try:
-            return json.loads(match.group(0))
+            return json.loads(json_str)
         except json.JSONDecodeError:
             pass
-    
-    raise ValueError(f"No valid JSON object found in LLM output:\n{text[:500]}")
+
+    # 3. Truncated JSON repair: LLM output was cut off, try to close braces
+    if start_idx != -1:
+        json_str = text_clean[start_idx:]
+        # Count unclosed braces and brackets
+        open_braces = json_str.count("{") - json_str.count("}")
+        open_brackets = json_str.count("[") - json_str.count("]")
+        # Remove trailing incomplete values (after last comma or colon)
+        json_str = re.sub(r',\s*"[^"]*$', "", json_str)  # trailing key without value
+        json_str = re.sub(r',\s*$', "", json_str)  # trailing comma
+        json_str = re.sub(r':\s*"[^"]*$', ': ""', json_str)  # incomplete string value
+        # Close remaining brackets and braces
+        json_str += "]" * max(0, open_brackets) + "}" * max(0, open_braces)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass
+
+    # Print the full payload to console for debugging
+    print(f"\n[JSON Extraction Failed] Raw LLM Output:\n{text}\n")
+    raise ValueError(f"No valid JSON object found in LLM output. See backend console for full response. Extract attempt was:\n{text_clean[:2000]}")
 
 
 def _coerce_to_schema(data: dict, pydantic_schema) -> dict:
@@ -262,9 +287,11 @@ def invoke_agent(system_prompt: str, user_prompt: str, pydantic_schema=None, mod
             raise Exception(f"{str(e)}")
         
     else:
+        system_escaped = system_prompt.replace("{", "{{").replace("}", "}}")
         prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
+            ("system", system_escaped),
             ("user", "{input}")
         ])
         chain = prompt | llm
         return chain.invoke({"input": user_prompt})
+

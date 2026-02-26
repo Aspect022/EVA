@@ -63,11 +63,7 @@ def run_qbii_generate(state: EvaState) -> EvaState:
         # Write partial intent with only questions populated
         from Backend.models.gal_schema import UserIntentRecord
         partial_intent = UserIntentRecord(
-            analytical_goal="pending_user_input",
-            decision_supported="pending_user_input",
-            stakeholder_type="pending_user_input",
-            interpretability_priority="pending_user_input",
-            constraints=[],
+            primary_objective="pending_user_input",
             generated_questions=questions,
             user_confirmed=False,
         )
@@ -205,7 +201,7 @@ def submit_user_answers(session_id: str, answers: Dict[str, str]) -> Dict[str, A
         return {
             "status": "Intent Confirmed",
             "session_id": session_id,
-            "analytical_goal": intent.analytical_goal,
+            "primary_objective": intent.primary_objective,
             "selected_target": intent.selected_target,
         }
     except Exception as e:
