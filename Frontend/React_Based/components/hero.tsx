@@ -1,71 +1,61 @@
-import Image from "next/image"
+"use client"
+
 import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import StarBorder from "@/components/star-border"
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center bg-[var(--ink-black)] overflow-hidden pt-16">
-      {/* Background subtle pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--prussian-blue)_0%,_var(--ink-black)_70%)] opacity-50" />
-      
-      {/* Geometric grid pattern overlay */}
-      <div 
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: `linear-gradient(var(--dusk-blue) 1px, transparent 1px), linear-gradient(90deg, var(--dusk-blue) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px'
-        }}
-      />
-      
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-24 lg:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          {/* Left content */}
-          <div className="space-y-8">
-            <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-[var(--alabaster-grey)] leading-[1.1] tracking-tight text-balance">
-                AUTONOMOUS<br />
-                DATA SCIENCE.<br />
-                <span className="text-[var(--dusty-denim)]">LOCALIZED.</span>
-              </h1>
-              
-              <p className="text-lg text-[var(--dusty-denim)] max-w-lg leading-relaxed">
-                Deploy powerful AI-driven analytics directly in your local environment. 
-                Full control, complete privacy, zero compromise.
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="#"
-                className="inline-flex items-center justify-center bg-[var(--cta-orange)] text-[var(--ink-black)] px-8 py-4 rounded-lg text-base font-bold uppercase tracking-wide hover:bg-[#EA6C0A] transition-all shadow-[0_0_24px_rgba(249,115,22,0.35)] hover:shadow-[0_0_32px_rgba(249,115,22,0.5)]"
-              >
-                Start Free Trial
-              </Link>
-              <Link
-                href="#"
-                className="inline-flex items-center justify-center border border-[var(--dusk-blue)] text-[var(--alabaster-grey)] px-8 py-4 rounded-lg text-base font-semibold hover:bg-[var(--prussian-blue)] transition-colors"
-              >
-                View Demo
-              </Link>
-            </div>
-            
-            <p className="text-sm text-[var(--dusty-denim)]">
-              No credit card required.
-            </p>
-          </div>
-          
-          {/* Right content - Brain image */}
-          <div className="relative flex items-center justify-center lg:justify-end">
-            <div className="relative w-full max-w-lg lg:max-w-xl aspect-square">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--dusk-blue)_0%,_transparent_70%)] opacity-30 blur-3xl" />
-              <Image
-                src="/images/neural-brain.jpg"
-                alt="Neural network brain visualization representing autonomous AI data science"
-                fill
-                className="object-contain relative z-10"
-                priority
-              />
-            </div>
-          </div>
+    <section className="relative min-h-screen flex flex-col items-center justify-center px-4 md:px-8 pt-20 pb-20 overflow-hidden">
+      {/* Layer 2: Blur Orbs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-cyan-400/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 max-w-4xl text-center space-y-8">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card glass-card-hover cursor-default">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+          </span>
+        </div>
+
+        {/* Heading */}
+        <div className="space-y-4">
+          <h1 className="text-4xl md:text-7xl font-extrabold text-balance leading-tight">
+            <span className="text-[var(--alabaster-grey)]">
+              AUTONOMOUS{" "}
+            </span>
+            <span className="text-[var(--alabaster-grey)]">
+              DATA SCIENCE.
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-cyan-400 to-cyan-500 bg-clip-text text-transparent">
+              LOCALIZED.
+            </span>
+          </h1>
+          <p className="text-lg md:text-2xl text-[var(--dusty-denim)] text-balance max-w-3xl mx-auto leading-relaxed">
+            Deploy powerful AI-driven analytics directly in your local
+            environment. Full control, complete privacy, zero compromise.
+          </p>
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+          <Link href="/signup">
+            <StarBorder color="#00d4ff" speed="6s">
+              Get Started
+              <ArrowRight className="w-5 h-5 ml-2 inline" />
+            </StarBorder>
+          </Link>
+          <Link
+            href="#features"
+            className="inline-flex items-center justify-center border border-[var(--dusk-blue)] text-[var(--alabaster-grey)] px-8 py-4 rounded-[20px] text-base font-semibold hover:bg-[var(--prussian-blue)] transition-colors"
+          >
+            View Demo
+          </Link>
         </div>
       </div>
     </section>

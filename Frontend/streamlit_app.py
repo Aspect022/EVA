@@ -2,8 +2,14 @@ import streamlit as st
 import requests
 import json
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from Backend.config import settings
+
 # Configuration
-API_URL = "http://localhost:8000"
+API_URL = settings.streamlit.api_url
+TIMEOUT = settings.execution.default_timeout
 
 st.set_page_config(page_title="EVA Testing UI", layout="wide")
 
@@ -164,7 +170,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/phase1a",
                         params=params,
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -211,7 +217,7 @@ with col1:
                             f"{API_URL}/session/{st.session_state.session_id}/submit-answers",
                             json={"answers": answers},
                             params={"rules_mode": rules_mode},
-                            timeout=800,
+                            timeout=TIMEOUT,
                         )
                         if resp.status_code != 200:
                             st.error(f"Error: {resp.text}")
@@ -238,7 +244,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/phase1b",
                         params=params,
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -271,7 +277,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/phase2",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -308,7 +314,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/fie",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -341,7 +347,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/fie",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -396,7 +402,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/adc",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -429,7 +435,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/adc",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -461,7 +467,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/rg",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:
@@ -494,7 +500,7 @@ with col1:
                     resp = requests.post(
                         f"{API_URL}/session/{st.session_state.session_id}/execute/rg",
                         params={"rules_mode": rules_mode},
-                        timeout=800,
+                        timeout=TIMEOUT,
                     )
                     if resp.status_code != 200:
                         try:

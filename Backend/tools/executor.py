@@ -78,9 +78,14 @@ class CodeExecutor:
             "PYTHONIOENCODING": "utf-8",
         }
 
+        # Resolve Python executable to ensure it explicitly uses the .venv
+        venv_python = project_root / ".venv" / "Scripts" / "python.exe"
+        if not venv_python.exists():
+            venv_python = Path(sys.executable) # Fallback if .venv is missing or differently named
+
         try:
             result = subprocess.run(
-                [sys.executable, str(script_path.resolve())],
+                [str(venv_python), str(script_path.resolve())],
                 capture_output=True,
                 text=True,
                 timeout=timeout_seconds,

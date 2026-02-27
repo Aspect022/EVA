@@ -18,9 +18,13 @@ class LLMSettings(BaseModel):
 class ExecutionSettings(BaseModel):
     default_timeout: int = Field(default=300)
 
+class StreamlitSettings(BaseModel):
+    api_url: str = Field(default="http://localhost:8000")
+
 class Settings(BaseModel):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     execution: ExecutionSettings = Field(default_factory=ExecutionSettings)
+    streamlit: StreamlitSettings = Field(default_factory=StreamlitSettings)
 
 def load_settings() -> Settings:
     if os.path.exists(CONFIG_FILE_PATH):

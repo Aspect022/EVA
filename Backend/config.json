@@ -12,5 +12,8 @@
   },
   "execution": {
     "default_timeout": 800
+  },
+  "streamlit": {
+    "api_url": "http://localhost:8000"
   }
 }

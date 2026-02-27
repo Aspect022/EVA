@@ -153,6 +153,22 @@ export default function Dock({
   const heightRow = useTransform(isHovered, [0, 1], [panelHeight, maxHeight]);
   const height = useSpring(heightRow, spring);
 
+  // Don't render an empty dock container
+  if (!items || items.length === 0) {
+    return (
+      <div className="mx-2 flex max-w-full items-center justify-center">
+        <div
+          className={`${className} flex items-end w-fit gap-4 rounded-2xl border-neutral-700 border-2 pb-2 px-4`}
+          style={{ height: panelHeight }}
+          role="toolbar"
+          aria-label="Application dock"
+        >
+          <span className="text-neutral-500 text-xs py-2">No items</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div style={{ height, scrollbarWidth: 'none' }} className="mx-2 flex max-w-full items-center">
       <motion.div

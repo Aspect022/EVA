@@ -1,0 +1,382 @@
+# 🎨 Background Animation — Full Reproduction Guide
+
+Your hero/landing page background consists of **3 visual layers** working together:
+
+```mermaid
+graph LR
+    A[Canvas Particle System] --> D[Final Composition]
+    B[Radial Blur Orbs] --> D
+    C[Glass UI + StarBorder Btn] --> D
+```
+
+---
+
+## Layer 1: `ParticleBackground` — The Star of the Show
+
+This is a full-screen `<canvas>` element that draws **50 floating particles** in cyan, purple, and green. Nearby particles are connected with semi-transparent lines, creating a **neural network / constellation** effect.
+
+```tsx
+"use client"
+
+import { useEffect, useRef } from "react"
+
+interface Particle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  size: number
+  opacity: number
+  color: string
+}
+
+export function ParticleBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const particlesRef = useRef<Particle[]>([])
+  const animationIdRef = useRef<number>()
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    // Set canvas size
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resizeCanvas()
+    window.addEventListener("resize", resizeCanvas)
+
+    // Initialize particles
+    const colors = ["#00d4ff", "#a78bfa", "#10b981"]
+    const particleCount = 50
+
+    particlesRef.current = Array.from({ length: particleCount }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      size: Math.random() * 3 + 1,
+      opacity: Math.random() * 0.5 + 0.3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }))
+
+    // Animation loop
+    const animate = () => {
+      ctx.fillStyle = "rgba(15, 15, 30, 0.1)"
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      particlesRef.current.forEach((particle, i) => {
+        // Update position
+        particle.x += particle.vx
+        particle.y += particle.vy
+
+        // Bounce off edges
+        if (particle.x - particle.size < 0 || particle.x + particle.size > canvas.width) {
+          particle.vx *= -1
+          particle.x = Math.max(particle.size, Math.min(canvas.width - particle.size, particle.x))
+        }
+        if (particle.y - particle.size < 0 || particle.y + particle.size > canvas.height) {
+          particle.vy *= -1
+          particle.y = Math.max(particle.size, Math.min(canvas.height - particle.size, particle.y))
+        }
+
+        // Draw particle
+        ctx.fillStyle = particle.color
+        ctx.globalAlpha = particle.opacity
+        ctx.beginPath()
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        ctx.fill()
+
+        // Draw connecting lines to nearby particles
+        for (let j = i + 1; j < particlesRef.current.length; j++) {
+          const other = particlesRef.current[j]
+          const dx = particle.x - other.x
+          const dy = particle.y - other.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+
+          if (distance < 150) {
+            ctx.strokeStyle = particle.color
+            ctx.globalAlpha = (1 - distance / 150) * 0.3
+            ctx.lineWidth = 1
+            ctx.beginPath()
+            ctx.moveTo(particle.x, particle.y)
+            ctx.lineTo(other.x, other.y)
+            ctx.stroke()
+          }
+        }
+      })
+
+      ctx.globalAlpha = 1
+      animationIdRef.current = requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas)
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current)
+      }
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 -z-10 pointer-events-none"
+      style={{ background: "linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%)" }}
+    />
+  )
+}
+```
+
+> [!IMPORTANT]
+> The `style` on the canvas sets the **base dark gradient background** (`#0f0f1e → #1a1a2e`). The clearing fill `rgba(15, 15, 30, 0.1)` creates a **motion trail** effect instead of hard-clearing every frame.
+
+---
+
+## Layer 2: Radial Blur Orbs (in the Hero Section)
+
+These are two large, soft, semi-transparent circles placed behind the content. They create a subtle ambient glow:
+
+```tsx
+{/* Inside the hero <section> */}
+<div className="absolute inset-0 pointer-events-none">
+  <div className="absolute top-20 left-10 w-96 h-96 bg-cyan-400/5 rounded-full blur-3xl" />
+  <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl" />
+</div>
+```
+
+---
+
+## Layer 3: `StarBorder` Button — Animated Glowing Border
+
+The CTA button uses two animated radial gradient orbs that orbit around the button edges, creating a **shimmering star-trail** border effect.
+
+> [!NOTE]
+> The `animate-star-movement-bottom` and `animate-star-movement-top` classes are **Tailwind v4 custom animations**. Since this project uses Tailwind v4 (which auto-detects utilities), these keyframes need to be defined in your CSS. They were likely provided by a Tailwind plugin or defined in a config that has since been removed. I've reconstructed them below based on the component logic.
+
+```tsx
+import type React from "react"
+
+type StarBorderProps<T extends React.ElementType> = React.ComponentPropsWithoutRef<T> & {
+  as?: T
+  className?: string
+  children?: React.ReactNode
+  color?: string
+  speed?: React.CSSProperties["animationDuration"]
+  thickness?: number
+}
+
+const StarBorder = <T extends React.ElementType = "button">({
+  as,
+  className = "",
+  color = "white",
+  speed = "6s",
+  thickness = 1,
+  children,
+  ...rest
+}: StarBorderProps<T>) => {
+  const Component = as || "button"
+
+  return (
+    <Component
+      className={`relative inline-block overflow-hidden rounded-[20px] ${className}`}
+      {...(rest as any)}
+      style={{
+        padding: `${thickness}px 0`,
+        ...(rest as any).style,
+      }}
+    >
+      <div
+        className="absolute w-[300%] h-[50%] opacity-70 bottom-[-11px] right-[-250%] rounded-full animate-star-movement-bottom z-0"
+        style={{
+          background: `radial-gradient(circle, ${color}, transparent 10%)`,
+          animationDuration: speed,
+        }}
+      ></div>
+      <div
+        className="absolute w-[300%] h-[50%] opacity-70 top-[-10px] left-[-250%] rounded-full animate-star-movement-top z-0"
+        style={{
+          background: `radial-gradient(circle, ${color}, transparent 10%)`,
+          animationDuration: speed,
+        }}
+      ></div>
+      <div className="relative z-1 bg-gradient-to-b from-black to-gray-900 border border-gray-800 text-white text-center text-[16px] py-[16px] px-[26px] rounded-[20px]">
+        {children}
+      </div>
+    </Component>
+  )
+}
+
+export default StarBorder
+```
+
+---
+
+## Required CSS — Add to `globals.css`
+
+These are the **design tokens**, **glass effects**, **animations**, and the **missing `star-movement` keyframes**:
+
+```css
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --background: #0f0f1e;
+  --surface: #1a1a2e;
+  --primary: #00d4ff;
+  --secondary: #a78bfa;
+  --success: #10b981;
+  --text-primary: #e4e4e7;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border: rgba(255, 255, 255, 0.1);
+  --shadow-glow-primary: 0 0 30px rgba(0, 212, 255, 0.4);
+}
+
+/* ===== GLASS CARD EFFECT ===== */
+.glass-card {
+  background: rgba(26, 26, 46, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.4),
+              -8px -8px 16px rgba(255, 255, 255, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover {
+  transition: all 0.2s;
+  box-shadow: var(--shadow-glow-primary);
+}
+.glass-card-hover:hover {
+  transform: scale(1.02);
+}
+
+/* ===== GLOW UTILITIES ===== */
+.glow-primary { box-shadow: 0 0 30px rgba(0, 212, 255, 0.4); }
+
+/* ===== CUSTOM SCROLLBAR ===== */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.5); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* ===== STAR BORDER KEYFRAMES (reconstructed) ===== */
+@keyframes star-movement-bottom {
+  0%   { right: -250%; bottom: -11px; }
+  100% { right: 100%;  bottom: -11px; }
+}
+
+@keyframes star-movement-top {
+  0%   { left: -250%; top: -10px; }
+  100% { left: 100%;  top: -10px; }
+}
+
+.animate-star-movement-bottom {
+  animation: star-movement-bottom 6s linear infinite;
+}
+
+.animate-star-movement-top {
+  animation: star-movement-top 6s linear infinite;
+}
+```
+
+---
+
+## Complete Hero Section — Putting It All Together
+
+```tsx
+"use client"
+
+import { useState, useEffect } from "react"
+import { ParticleBackground } from "@/components/particle-background"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import StarBorder from "@/components/star-border"
+
+export default function Home() {
+  return (
+    <main>
+      <ParticleBackground />
+      <div className="relative z-10">
+        {/* Hero Section */}
+        <section className="relative min-h-screen flex flex-col items-center justify-center px-4 md:px-8 pt-20 pb-20 overflow-hidden">
+          {/* Layer 2: Blur Orbs */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-20 left-10 w-96 h-96 bg-cyan-400/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl" />
+          </div>
+
+          <div className="relative z-10 max-w-4xl text-center space-y-8 animate-in fade-in duration-1000">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card glass-card-hover">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+              </span>
+              <span className="text-sm text-text-secondary">Welcome to InfinityAI</span>
+            </div>
+
+            {/* Heading */}
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-7xl font-bold text-balance leading-tight">
+                <span className="bg-gradient-to-r from-cyan-400 to-cyan-500 bg-clip-text text-transparent">
+                  Transform Ideas Into Workflows
+                </span>
+              </h1>
+              <p className="text-lg md:text-2xl text-text-secondary text-balance max-w-3xl mx-auto leading-relaxed">
+                Describe your ideas in natural language. Let AI automate your
+                workflow generation, and watch your productivity soar.
+              </p>
+            </div>
+
+            {/* CTA Button */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+              <Link href="/ideas">
+                <StarBorder color="#00d4ff" speed="6s">
+                  Get Started
+                  <ArrowRight className="w-5 h-5 ml-2 inline" />
+                </StarBorder>
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  )
+}
+```
+
+---
+
+## Key Design Decisions
+
+| Aspect | Value | Why |
+|---|---|---|
+| **Background gradient** | `#0f0f1e → #1a1a2e` | Deep dark blue-black, avoids pure black |
+| **Particle colors** | `#00d4ff`, `#a78bfa`, `#10b981` | Cyan, Purple, Emerald — high contrast on dark |
+| **Particle count** | 50 | Balanced density without performance hit |
+| **Connection distance** | 150px | Close enough for a web/constellation feel |
+| **Trail effect** | `rgba(15,15,30, 0.1)` fill | 10% opacity clear = ghosting/motion trails |
+| **Glass card** | `blur(20px) saturate(180%)` | Frosted glass with color pop |
+| **Star border speed** | `6s` | Slow enough to be premium, fast enough to notice |
+| **Font** | Geist (Google Fonts) | Modern, clean sans-serif |
