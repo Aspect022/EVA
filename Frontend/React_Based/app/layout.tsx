@@ -1,22 +1,22 @@
 import type { Metadata } from 'next'
-import { Inter, Fira_Code } from 'next/font/google'
+import { Fira_Sans, Fira_Code } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const inter = Inter({ 
+const firaSans = Fira_Sans({
   subsets: ["latin"],
-  variable: '--font-inter',
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: '--font-fira-sans',
 });
 
-const firaCode = Fira_Code({ 
+const firaCode = Fira_Code({
   subsets: ["latin"],
   variable: '--font-fira-code',
 });
 
 export const metadata: Metadata = {
-  title: 'EVA - Autonomous Data Science. Localized.',
-  description: 'EVA is an autonomous data science platform that brings powerful AI-driven analytics directly to your local environment.',
-  generator: 'v0.app',
+  title: 'EVA — Autonomous Data Science OS',
+  description: 'EVA is a session-based analytical operating system. Autonomous data science reasoning, multi-agent ML pipelines, and human-in-the-loop control — all running locally.',
   icons: {
     icon: [
       {
@@ -43,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${firaCode.variable} font-sans antialiased`}>
+      <body className={`${firaSans.variable} ${firaCode.variable} font-sans antialiased bg-black text-white`}>
         {children}
         <Analytics />
       </body>
