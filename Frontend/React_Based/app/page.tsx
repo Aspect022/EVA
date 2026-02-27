@@ -11,7 +11,9 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-black">
       <EvaHero />
-      <AgentOrchestration />
+      <section id="next-section">
+        <AgentOrchestration />
+      </section>
       <GalTrace />
       <SecurityPrivacy />
       <FinalCta />
