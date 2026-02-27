@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from Backend.storage.gal_manager import GALManager
-from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_vpe
+from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_vpe, start_adc
 
 import traceback
 from typing import Optional, Dict, List
@@ -24,6 +24,7 @@ class SessionInfo(BaseModel):
     has_findings: bool = False
     has_hypotheses: bool = False
     has_visualizations: bool = False
+    has_dashboard: bool = False
     csv_file: Optional[str] = None
 
 @router.get("/list", response_model=List[SessionInfo])
@@ -55,6 +56,7 @@ def list_sessions():
                 has_integrity=gal.data_integrity is not None,
                 has_findings=gal.exploratory_findings is not None,
                 has_hypotheses=gal.hypotheses is not None,
+                has_dashboard=gal.dashboard_plan is not None,
                 csv_file=csv_file,
             ))
         except Exception:
@@ -217,3 +219,26 @@ def execute_vpe(session_id: str, rules_mode: str = "full"):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- ADC: Analytical Dashboard Composer ---
+
+class ADCResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    panels: int = 0
+    kpis: int = 0
+    alerts: int = 0
+    recommendations: int = 0
+
+@router.post("/{session_id}/execute/adc", response_model=ADCResponse)
+def execute_adc(session_id: str, rules_mode: str = "full"):
+    """Runs ADC: Analytical Dashboard Composer to generate KPIs, alerts, and recommendations."""
+    try:
+        result = start_adc(session_id, rules_mode=rules_mode)
+        return ADCResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+

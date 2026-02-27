@@ -36,6 +36,8 @@ if 'hypotheses_generated' not in st.session_state:
     st.session_state.hypotheses_generated = False
 if 'has_visualizations' not in st.session_state:
     st.session_state.has_visualizations = False
+if 'has_dashboard' not in st.session_state:
+    st.session_state.has_dashboard = False
 
 # --- UI Layout ---
 col1, col2 = st.columns([1, 2])
@@ -88,6 +90,7 @@ with col1:
                 st.session_state.phase1b_complete = s_info.get("has_findings", False) if s_info else False
                 st.session_state.hypotheses_generated = s_info.get("has_hypotheses", False) if s_info else False
                 st.session_state.has_visualizations = s_info.get("has_visualizations", False) if s_info else False
+                st.session_state.has_dashboard = s_info.get("has_dashboard", False) if s_info else False
                 # Restore questions state if identity exists but intent not confirmed
                 if s_info and s_info.get("has_identity") and not s_info.get("has_intent"):
                     try:
@@ -117,6 +120,7 @@ with col1:
             st.session_state.phase1b_complete = False
             st.session_state.hypotheses_generated = False
             st.session_state.has_visualizations = False
+            st.session_state.has_dashboard = False
             st.session_state.pipeline_status = None
             st.success(f"Session Created: {st.session_state.session_id[:8]}...")
         except Exception as e:
@@ -291,6 +295,71 @@ with col1:
         viz_url = f"http://localhost:8502?session_id={st.session_state.session_id}"
         st.link_button("📊 Open Data Visualizer", viz_url, type="primary")
 
+    if st.session_state.has_visualizations and not st.session_state.has_dashboard:
+        st.markdown("---")
+        st.header("8. 📈 Dashboard Maker")
+        st.markdown("Runs **ADC** — Analytical Dashboard Composer to generate KPIs, alerts, and recommendations.")
+
+        if st.button("Generate Dashboard"):
+            with st.spinner("EVA is composing the dashboard..."):
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/session/{st.session_state.session_id}/execute/adc",
+                        params={"rules_mode": rules_mode},
+                        timeout=800,
+                    )
+                    if resp.status_code != 200:
+                        try:
+                            err = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err = resp.text
+                        st.error(f"ADC Error ({resp.status_code}): {err}")
+                    else:
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"ADC Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.session_state.has_dashboard = True
+                            st.success(f"Dashboard generated with {data.get('kpis')} KPIs and {data.get('recommendations')} recommendations!")
+                            st.rerun()
+                except requests.exceptions.Timeout:
+                    st.error("ADC timed out.")
+                except Exception as e:
+                    st.error(f"Execution failed: {str(e)}")
+
+    if st.session_state.has_dashboard:
+        st.markdown("---")
+        st.header("8. ✅ Dashboard Generated")
+        st.info("Review the dashboard metrics in the GAL panel.")
+        
+        if st.button("🔄 Regenerate Dashboard"):
+            with st.spinner("EVA is regenerating the dashboard..."):
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/session/{st.session_state.session_id}/execute/adc",
+                        params={"rules_mode": rules_mode},
+                        timeout=800,
+                    )
+                    if resp.status_code != 200:
+                        try:
+                            err = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err = resp.text
+                        st.error(f"ADC Error ({resp.status_code}): {err}")
+                    else:
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"ADC Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.success(f"Dashboard regenerated with {data.get('kpis')} KPIs and {data.get('recommendations')} recommendations!")
+                            st.rerun()
+                except requests.exceptions.Timeout:
+                    st.error("ADC timed out.")
+                except Exception as e:
+                    st.error(f"Execution failed: {str(e)}")
+
 with col2:
     st.header("Global Analysis Ledger (GAL)")
     
@@ -301,7 +370,7 @@ with col2:
                 resp.raise_for_status()
                 gal_data = resp.json()
                 
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Visualizations"])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Visualizations", "Dashboard"])
                 
                 with tab1:
                     overview = {
@@ -418,6 +487,37 @@ with col2:
                             st.markdown("---")
                     else:
                         st.info("No Visualizations Generated Yet")
+                        
+                with tab8:
+                    if gal_data.get("dashboard_plan"):
+                        db_data = gal_data["dashboard_plan"]
+                        if db_data.get("overall_reasoning"):
+                            st.markdown(f"_{db_data['overall_reasoning']}_")
+                        st.markdown(f"**Stakeholder Calibration:** {db_data.get('stakeholder_calibration', 'N/A')}")
+                        st.markdown("---")
+
+                        st.subheader("📊 KPIs")
+                        for kpi in db_data.get("kpis", []):
+                            st.markdown(f"**{kpi.get('name')}**: {kpi.get('value')} _(Source: {kpi.get('derivation_source')})_")
+                            st.caption(f"Reasoning: {kpi.get('justification')}")
+
+                        st.markdown("---")
+                        st.subheader("🚨 Alerts")
+                        for alert in db_data.get("alerts", []):
+                            alert_type = alert.get("alert_type", "Info")
+                            icon = "🔴" if alert_type == "Critical" else ("🟡" if alert_type == "Warning" else "🔵")
+                            st.markdown(f"{icon} **{alert_type}**: {alert.get('description')}")
+                            st.caption(f"Ref: {alert.get('evidence_ref')} | Confidence: {alert.get('confidence')}")
+
+                        st.markdown("---")
+                        st.subheader("💡 Recommendations")
+                        for rec in db_data.get("recommendations", []):
+                            st.markdown(f"**Action:** {rec.get('action')}")
+                            st.markdown(f"- **Target:** {rec.get('target_group')} | **Impact:** {rec.get('expected_impact')} | **Urgency:** {rec.get('urgency')}")
+                            st.caption(f"Based on: {rec.get('supporting_evidence_ref')} & {rec.get('supporting_hypothesis_ref')}")
+                            st.markdown("---")
+                    else:
+                        st.info("No Dashboard Plan Generated Yet")
                         
             except Exception as e:
                 st.error("Failed to read GAL (it may not be initialized).")

@@ -11,6 +11,7 @@ from Backend.agents.dril_agent import DRILAgent
 from Backend.agents.epr_agent import EPRAgent
 from Backend.agents.ihe_agent import IHEAgent
 from Backend.agents.vpe_agent import VPEAgent
+from Backend.agents.adc_agent import ADCAgent
 
 # Define state strictly mirroring the active analysis instance
 class EvaState(TypedDict):
@@ -406,6 +407,48 @@ def start_vpe(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
     except Exception as e:
         return {
             "status": "Failed VPE",
+            "error": str(e),
+            "session_id": session_id,
+        }
+
+
+def start_adc(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
+    """Phase 3 / ADC: Analytical Dashboard Composer. Requires VPE to exist."""
+    gal = GALManager.read_gal(session_id)
+
+    if not gal.visualization_plan:
+        return {
+            "status": "Blocked",
+            "error": "Visualization plan not generated. Run VPE first.",
+            "session_id": session_id,
+        }
+
+    try:
+        dashboard_plan = ADCAgent.execute(
+            identity=gal.dataset_identity,
+            intent=gal.user_intent,
+            findings=gal.exploratory_findings,
+            hypotheses=gal.hypotheses,
+            viz_plan=gal.visualization_plan,
+            rules_mode=rules_mode,
+        )
+
+        gal.dashboard_plan = dashboard_plan
+        GALManager.write_gal(session_id, gal)
+
+        # Build summary for API response
+        return {
+            "status": "ADC Complete",
+            "error": None,
+            "session_id": session_id,
+            "panels": len(dashboard_plan.panels) if dashboard_plan.panels else 0,
+            "kpis": len(dashboard_plan.kpis) if dashboard_plan.kpis else 0,
+            "alerts": len(dashboard_plan.alerts) if dashboard_plan.alerts else 0,
+            "recommendations": len(dashboard_plan.recommendations) if dashboard_plan.recommendations else 0,
+        }
+    except Exception as e:
+        return {
+            "status": "Failed ADC",
             "error": str(e),
             "session_id": session_id,
         }

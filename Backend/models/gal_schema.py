@@ -271,6 +271,121 @@ class VisualizationPlanRecord(BaseModel):
         return v
 
 
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+# ... existing code ...
+
+# --- GAL Section 9: Recommendations & Decisions (Dashboard Plan) ---
+class KPI(BaseModel):
+    name: str = Field(default="KPI", description="The name of the metric")
+    value: str | float = Field(default="", description="Current value")
+    justification: str = Field(default="", description="Why this KPI is relevant to the decision goal")
+    derivation_source: str = Field(default="", description="Where this KPI comes from (e.g., specific column, basic stat, FIE derived feature)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_fields(cls, data: Any):
+        if isinstance(data, dict):
+            if data.get("value") is None:
+                data["value"] = ""
+            if "description" in data and "justification" not in data:
+                data["justification"] = data["description"]
+        return data
+
+
+class DashboardAlert(BaseModel):
+    alert_type: str = Field(default="Warning", description="Info, Warning, or Critical")
+    description: str = Field(default="", description="What needs attention right now")
+    evidence_ref: str = Field(default="", description="GAL Section 4/5 entry that justifies this alert")
+    confidence: str = Field(default="Moderate", description="Confidence level for this alert")
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_fields(cls, data: Any):
+        if isinstance(data, dict):
+            if "title" in data and "alert_type" not in data:
+                data["alert_type"] = "Warning"
+                if "description" not in data:
+                    data["description"] = data["title"]
+        return data
+
+
+class Recommendation(BaseModel):
+    action: str = Field(default="", description="The specific recommended action")
+    target_group: str = Field(default="", description="The affected group or segment")
+    expected_impact: str = Field(default="", description="Anticipated improvement if implemented")
+    urgency: str = Field(default="Medium", description="Low, Medium, High")
+    confidence: str = Field(default="Moderate", description="Confidence level of this recommendation")
+    supporting_evidence_ref: str = Field(default="", description="Citations from Section 4 and 8")
+    supporting_hypothesis_ref: str = Field(default="", description="Reference to Hypothesis from Section 5 explaining why this might work")
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_fields(cls, data: Any):
+        if isinstance(data, dict):
+            pass # Provided for consistency in case future key mapping is needed
+        return data
+
+
+class DashboardPanel(BaseModel):
+    panel_name: str = Field(default="", description="Name of the panel (e.g., 'A - System Overview')")
+    description: str = Field(default="", description="Content description or summary")
+    elements: Optional[List[Any] | str] = Field(default_factory=list, description="Items inside the panel (KPIs, Text, Chart descriptions)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_fields(cls, data: Any):
+        if isinstance(data, dict):
+            if "panel_id" in data and "panel_name" not in data:
+                data["panel_name"] = str(data["panel_id"])
+            if "purpose" in data and "description" not in data:
+                data["description"] = str(data["purpose"])
+        return data
+
+
+class DashboardPlanRecord(BaseModel):
+    """GAL Section 9 — The dashboard and recommendation plan created by the ADC."""
+    kpis: Optional[List[KPI] | str] = Field(default_factory=list, description="Panel A key performace indicators")
+    alerts: Optional[List[DashboardAlert] | str] = Field(default_factory=list, description="Panel C time-sensitive items")
+    recommendations: Optional[List[Recommendation] | str] = Field(default_factory=list, description="Panel D action guidance")
+    panels: Optional[List[DashboardPanel] | str] = Field(default_factory=list, description="General structural layout definition")
+    stakeholder_calibration: str = Field(default="general", description="How the dashboard is calibrated (Student, Manager, etc.)")
+    overall_reasoning: str = Field(default="", description="ADC explanation of the chosen structure")
+    recorded_at: Optional[datetime | str] = Field(default_factory=datetime.utcnow)
+
+    @field_validator("kpis", mode="before")
+    @classmethod
+    def coerce_kpis(cls, v):
+        v = _coerce_to_list(v)
+        if isinstance(v, list):
+            return [{"name": "KPI", "value": item} if isinstance(item, str) else item for item in v]
+        return v
+
+    @field_validator("alerts", mode="before")
+    @classmethod
+    def coerce_alerts(cls, v):
+        v = _coerce_to_list(v)
+        if isinstance(v, list):
+            return [{"description": item} if isinstance(item, str) else item for item in v]
+        return v
+
+    @field_validator("recommendations", mode="before")
+    @classmethod
+    def coerce_recommendations(cls, v):
+        v = _coerce_to_list(v)
+        if isinstance(v, list):
+            return [{"action": item} if isinstance(item, str) else item for item in v]
+        return v
+
+    @field_validator("panels", mode="before")
+    @classmethod
+    def coerce_panels(cls, v):
+        v = _coerce_to_list(v)
+        if isinstance(v, list):
+            return [{"panel_name": "Panel", "description": item} if isinstance(item, str) else item for item in v]
+        return v
+
+
 # --- Master GAL Model ---
 class GlobalAnalysisLedger(BaseModel):
     session_id: str
@@ -282,3 +397,5 @@ class GlobalAnalysisLedger(BaseModel):
     exploratory_findings: Optional[ExploratoryFindings] = None
     hypotheses: Optional[HypothesesRecord] = None
     visualization_plan: Optional[VisualizationPlanRecord] = None
+    dashboard_plan: Optional[DashboardPlanRecord] = None
+

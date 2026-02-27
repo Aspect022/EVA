@@ -52,9 +52,9 @@ This phase focuses on rendering the reasoning into understandable visuals, persi
 * **Design Doc:** [08_VPE_Visualization_Planner.md](./Mini-Docs/08_VPE_Visualization_Planner.md)
 * **Status:** `vpe_agent.py` is implemented. It bypasses Feature Engineering temporarily and includes separate *Planner* (deciding *why* and *what* to visualize) and *Executor* (the actual rendering of the Plotly charts) components, alongside a dedicated Streamlit visualizer page.
 
-### 9. ADC - Analytical Dashboard Composer (⏳ Planned)
+### 9. ADC - Analytical Dashboard Composer (✅ Implemented)
 * **Design Doc:** [09_ADC_Dashboard_Composer.md](./Mini-Docs/09_ADC_Dashboard_Composer.md)
-* **Implementation Goal:** Build `adc_agent.py`. This module curates KPIs, alerts, and guided recommendations into a structured UI definition (creating an ongoing decision workspace).
+* **Status:** `adc_agent.py` is implemented. It curates KPIs, alerts, and guided recommendations into a structured UI definition (creating an ongoing decision workspace), populating Section 9 of the GAL. API route `/execute/adc` exposes this manually.
 
 ### 10. RG - Report Generator (⏳ Planned)
 * **Design Doc:** [10_RG_Report_Generator.md](./Mini-Docs/10_RG_Report_Generator.md)
