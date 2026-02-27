@@ -14,22 +14,22 @@ Return a JSON object matching `gal_schema.py`:
 
 ```json
 {
-  "domain": "BANKING | HEALTHCARE | INSURANCE | GENERAL | UNKNOWN",
-  "dataset_type": "TABULAR | TIME_SERIES | PANEL | NLP | CV | GRAPH | UNKNOWN",
+  "domain": "BANKING",
+  "dataset_type": "TABULAR",
   "has_target_column": true,
-  "inferred_target_column": "column_name or null",
-  "label_type": "BINARY | MULTICLASS | REGRESSION | NONE | UNKNOWN",
-  "has_temporal_column": true,
-  "temporal_column_name": "column_name or null",
+  "inferred_target_column": "loan_default",
+  "label_type": "BINARY",
+  "has_temporal_column": false,
+  "temporal_column_name": null,
   "has_group_column": false,
   "group_column_name": null,
   "has_pii_detected": false,
   "pii_column_candidates": [],
   "protected_attribute_flag": false,
-  "n_rows": 0,
-  "n_features": 0,
-  "domain_risk_flag": "LOW | HIGH | CRITICAL",
-  "regulatory_exposure_flag": false
+  "n_rows": 10000,
+  "n_features": 45,
+  "domain_risk_flag": "HIGH",
+  "regulatory_exposure_flag": true
 }
 ```
 

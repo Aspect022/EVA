@@ -1,6 +1,14 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
+from Backend.mlrl.schemas import (
+    ModelDefinitionRecord,
+    CandidateModelRecord,
+    ModelEvaluationRecord,
+    ModelValidationRecord,
+    PredictionDeploymentRecord,
+    GovernanceRecord,
+)
 
 
 def _coerce_to_list(v):
@@ -452,4 +460,12 @@ class GlobalAnalysisLedger(BaseModel):
     visualization_plan: Optional[VisualizationPlanRecord] = None
     dashboard_plan: Optional[DashboardPlanRecord] = None
     report_memory: Optional[ReportMemoryRecord] = None
+    ml_required: Optional[bool] = None
+    # MLRL structural foundation fields
+    model_definition: Optional[ModelDefinitionRecord] = None
+    candidate_models: Optional[CandidateModelRecord] = None
+    model_evaluation: Optional[ModelEvaluationRecord] = None
+    model_validation: Optional[ModelValidationRecord] = None
+    prediction_deployment: Optional[PredictionDeploymentRecord] = None
+    governance: Optional[GovernanceRecord] = None
 

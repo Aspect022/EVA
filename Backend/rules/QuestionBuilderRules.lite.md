@@ -36,9 +36,9 @@ Return a `RawAnswerRecord` (JSON) matching `gal_schema.py`:
 {
   "questions": [
     {
-      "question": "text",
-      "question_type": "goal | deployment | impact | error_cost | time",
-      "why_asked": "reason"
+      "question": "What is the primary goal of this analysis?",
+      "question_type": "goal",
+      "why_asked": "To determine the highest priority output format."
     }
   ],
   "ambiguity_flags": [],

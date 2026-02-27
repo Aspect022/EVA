@@ -16,18 +16,18 @@ Sections 1 (Identity), 2 (Intent), 4 (Findings), 5 (Hypotheses) from the GAL.
 {
   "visualizations": [
     {
-      "question": "...",
-      "related_finding": "...",
-      "variables_used": ["col1", "col2"],
-      "chart_type": "bar|scatter|histogram|line|box|heatmap|pie",
-      "chart_type_reasoning": "...",
+      "question": "How does survival rate differ across passenger classes?",
+      "related_finding": "target_association_Pclass_Survived",
+      "variables_used": ["Pclass", "Survived"],
+      "chart_type": "bar",
+      "chart_type_reasoning": "Compares a categorical variable across discrete groups.",
       "audience_calibration": "general",
-      "interpretation": "...",
-      "confidence_note": "..."
+      "interpretation": "First-class passengers survived at significantly higher rates than third-class passengers.",
+      "confidence_note": "Confirms known socioeconomic disparity in survival outcomes."
     }
   ],
-  "total_planned": 5,
-  "overall_reasoning": "..."
+  "total_planned": 1,
+  "overall_reasoning": "Dashboard structured to highlight the most impactful survival factor."
 }
 ```
 
