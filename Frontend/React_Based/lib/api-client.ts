@@ -93,15 +93,23 @@ export interface RGResponse {
 // --- API Functions ---
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
-  })
-  if (!res.ok) {
-    const detail = await res.text().catch(() => res.statusText)
-    throw new Error(`API ${res.status}: ${detail}`)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 600_000) // 10 min timeout
+
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...options?.headers },
+    })
+    if (!res.ok) {
+      const detail = await res.text().catch(() => res.statusText)
+      throw new Error(`API ${res.status}: ${detail}`)
+    }
+    return res.json()
+  } finally {
+    clearTimeout(timeout)
   }
-  return res.json()
 }
 
 export const api = {
