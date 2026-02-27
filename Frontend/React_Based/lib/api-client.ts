@@ -90,6 +90,50 @@ export interface RGResponse {
   report: Record<string, unknown>
 }
 
+// --- LOM Response Types ---
+
+export interface UploadLomResponse {
+  session_id: string
+  total_uploaded: number
+  uploaded: Array<Record<string, unknown>>
+  errors: string[]
+}
+
+export interface LOMProfileResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  source_inventory: Record<string, unknown>
+}
+
+export interface LOMTimelineResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  timeline_events: number
+  anomalies_found: number
+  hypotheses_count: number
+  hypotheses: Array<Record<string, unknown>>
+}
+
+export interface LOMReportResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  report: Record<string, unknown>
+}
+
+export interface LOMGalData {
+  session_id: string
+  source_inventory?: Record<string, unknown>
+  log_profile?: Record<string, unknown>
+  metric_profile?: Record<string, unknown>
+  timeline?: Record<string, unknown>
+  rca_hypotheses?: Record<string, unknown>
+  rca_report?: Record<string, unknown>
+  [key: string]: unknown
+}
+
 export interface CheckDatasetResponse {
   quick_mode_available: boolean
   source_session_id: string | null
@@ -229,6 +273,31 @@ export const api = {
 
   getReport: (sessionId: string) =>
     apiFetch<ReportData>(`/session/${sessionId}/report`),
+
+  // --- LOM API Functions ---
+  
+  uploadLomDataset: async (sessionId: string, files: File[]) => {
+    const form = new FormData()
+    files.forEach(f => form.append("files", f))
+    const res = await fetch(`${API_BASE}/session/${sessionId}/upload-lom`, {
+      method: "POST",
+      body: form,
+    })
+    if (!res.ok) throw new Error(`LOM Upload failed: ${res.statusText}`)
+    return res.json() as Promise<UploadLomResponse>
+  },
+
+  executeLomProfile: (sessionId: string) =>
+    apiFetch<LOMProfileResponse>(`/session/${sessionId}/execute/lom-profile`, { method: "POST" }),
+
+  executeLomTimeline: (sessionId: string) =>
+    apiFetch<LOMTimelineResponse>(`/session/${sessionId}/execute/lom-timeline`, { method: "POST" }),
+    
+  executeLomReport: (sessionId: string) =>
+    apiFetch<LOMReportResponse>(`/session/${sessionId}/execute/lom-report`, { method: "POST" }),
+
+  getLomGal: (sessionId: string) =>
+    apiFetch<LOMGalData>(`/session/${sessionId}/lom-gal`),
 
   checkDataset: (sessionId: string) =>
     apiFetch<CheckDatasetResponse>(

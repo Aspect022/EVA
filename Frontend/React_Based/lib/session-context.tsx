@@ -35,6 +35,15 @@ export const PIPELINE_PHASES = [
   { id: "adc_results", label: "Dashboard Results", agent: "ADC" },
   { id: "rg", label: "Final Report", agent: "RG" },
   { id: "rg_results", label: "Report View", agent: "RG" },
+  // LOM specific phases
+  { id: "lom_profile", label: "LOM Profile", agent: "LOM Profiler" },
+  { id: "lom_timeline", label: "Timeline & RCA", agent: "LOM RCA Engine" },
+  { id: "lom_report", label: "Final LOM Report", agent: "LOM Report Gen" },
+  {
+    id: "lom_report_results",
+    label: "LOM Report View",
+    agent: "LOM Report Gen",
+  },
   { id: "complete", label: "Complete", agent: "—" },
 ] as const;
 
@@ -77,6 +86,9 @@ interface SessionState {
   dashboardData: DashboardData | null;
   report: Record<string, unknown> | null;
   reportData: ReportData | null;
+  // LOM Pipeline
+  isLom: boolean;
+  lomGalData: Record<string, unknown> | null;
 }
 
 interface SessionContextType extends SessionState {
@@ -91,6 +103,9 @@ interface SessionContextType extends SessionState {
   runADC: () => Promise<void>;
   runRG: () => Promise<void>;
   runQuickMode: () => Promise<void>;
+  runLomProfile: () => Promise<void>;
+  runLomTimeline: () => Promise<void>;
+  runLomReport: () => Promise<void>;
   advanceFromResults: () => void;
   resetSession: () => void;
   getNextAgentName: () => string;
@@ -127,6 +142,8 @@ const initialState: SessionState = {
   dashboardData: null,
   report: null,
   reportData: null,
+  isLom: false,
+  lomGalData: null,
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -169,19 +186,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         );
 
         addLog("SYSTEM", `Uploading ${file.name}...`, "info");
-        const upload = await api.uploadDataset(session.session_id, file);
+
+        let uploadResult;
+        const isLomUpload = !file.name.toLowerCase().endsWith(".csv");
+
+        if (isLomUpload) {
+          uploadResult = await api.uploadLomDataset(session.session_id, [file]);
+        } else {
+          uploadResult = await api.uploadDataset(session.session_id, file);
+        }
+
         setState((prev) => ({
           ...prev,
-          csvFileName: upload.filename,
+          csvFileName: file.name,
+          isLom: isLomUpload,
           // Reset any previous fast/quick mode hints for this new upload
           quickModeAvailable: false,
           quickModeEnabled: false,
           sourceSessionId: null,
           completedPhases: [],
         }));
+
         addLog(
           "SYSTEM",
-          `File "${upload.filename}" uploaded successfully`,
+          `File "${file.name}" uploaded successfully`,
           "success",
         );
 
@@ -207,7 +235,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             const candidates = sessions.filter(
               (s) =>
                 s.session_id !== session.session_id &&
-                s.csv_file === upload.filename &&
+                s.csv_file === file.name &&
                 (s.has_report ||
                   s.has_dashboard ||
                   s.has_visualizations ||
@@ -252,7 +280,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           /* silently skip if check fails */
         }
 
-        setPhase("phase1a");
+        if (isLomUpload) {
+          setPhase("lom_profile");
+        } else {
+          setPhase("phase1a");
+        }
       } catch (err: unknown) {
         addLog(
           "SYSTEM",
@@ -668,6 +700,96 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setExecuting,
   ]);
 
+  const runLomProfile = useCallback(async () => {
+    if (!state.sessionId) return;
+    setExecuting(true);
+    try {
+      addLog("LOM Profiler", "Running LOM Log & Metric profiling...", "info");
+      await api.executeLomProfile(state.sessionId);
+      addLog("LOM Profiler", "LOM Profiling complete", "success");
+
+      const galData = await api.getLomGal(state.sessionId);
+      setState((prev) => ({ ...prev, lomGalData: galData }));
+
+      setPhase("lom_timeline");
+    } catch (err: unknown) {
+      addLog(
+        "LOM Profiler",
+        `LOM Profile failed: ${err instanceof Error ? err.message : String(err)}`,
+        "error",
+      );
+    } finally {
+      setExecuting(false);
+    }
+  }, [state.sessionId, addLog, setPhase, setExecuting]);
+
+  const runLomTimeline = useCallback(async () => {
+    if (!state.sessionId) return;
+    setExecuting(true);
+    try {
+      addLog(
+        "LOM RCA",
+        "Reconstructing timeline & generating hypotheses...",
+        "info",
+      );
+      await api.executeLomTimeline(state.sessionId);
+      addLog("LOM RCA", "Timeline & Hypothesis generation complete", "success");
+
+      const galData = await api.getLomGal(state.sessionId);
+      setState((prev) => ({ ...prev, lomGalData: galData }));
+
+      setPhase("lom_report");
+    } catch (err: unknown) {
+      addLog(
+        "LOM RCA",
+        `Timeline & RCA failed: ${err instanceof Error ? err.message : String(err)}`,
+        "error",
+      );
+    } finally {
+      setExecuting(false);
+    }
+  }, [state.sessionId, addLog, setPhase, setExecuting]);
+
+  const runLomReport = useCallback(async () => {
+    if (!state.sessionId) return;
+    setExecuting(true);
+    try {
+      addLog("LOM Report", "Generating final LOM report...", "info");
+      await api.executeLomReport(state.sessionId);
+      addLog("LOM Report", "LOM Report complete", "success");
+
+      const galData = await api.getLomGal(state.sessionId);
+      const rca = galData.rca_report as any;
+
+      const mappedReport: ReportData = {
+        narrative: `# Executive Summary\n${rca?.executive_summary || ""}\n\n# Root Cause\n${rca?.root_cause || ""}\n\n# Timeline Narrative\n${rca?.incident_timeline_narrative || ""}\n\n# Impact Assessment\n${rca?.impact_assessment || ""}`,
+        citations: rca?.citations || [],
+        included_visualizations: [],
+        communicated_recommendations: (rca?.remediation_steps || []).map(
+          (step: any) =>
+            `[${step.priority}] ${step.action}: ${step.estimated_impact}`,
+        ),
+        stakeholder_calibration: `Confidence: ${rca?.confidence_level || "Unknown"}`,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        lomGalData: galData,
+        reportData: mappedReport,
+      }));
+
+      setPhase("lom_report_results");
+    } catch (err: unknown) {
+      addLog(
+        "LOM Report",
+        `Report generation failed: ${err instanceof Error ? err.message : String(err)}`,
+        "error",
+      );
+    } finally {
+      setExecuting(false);
+    }
+  }, [state.sessionId, addLog, setPhase, setExecuting]);
+
   const resetSession = useCallback(() => {
     setState(initialState);
   }, []);
@@ -692,7 +814,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setPhase("rg_results");
       else setPhase("rg");
       return;
-    } else if (state.currentPhase === "rg_results") setPhase("complete");
+    } else if (
+      state.currentPhase === "rg_results" ||
+      state.currentPhase === "lom_report_results"
+    ) {
+      setPhase("complete");
+    }
   }, [
     state.currentPhase,
     state.quickModeEnabled,
@@ -987,6 +1114,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         runADC,
         runRG,
         runQuickMode,
+        runLomProfile,
+        runLomTimeline,
+        runLomReport,
         advanceFromResults,
         resetSession,
         getNextAgentName,

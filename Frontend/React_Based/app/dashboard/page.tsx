@@ -55,6 +55,9 @@ export default function DashboardPage() {
     runADC,
     runRG,
     runQuickMode,
+    runLomProfile,
+    runLomTimeline,
+    runLomReport,
     advanceFromResults,
   } = useSession();
 
@@ -272,6 +275,54 @@ export default function DashboardPage() {
           />
         ) : (
           <LoadingState message="Loading report..." />
+        );
+
+      case "lom_profile":
+        return (
+          <PhaseAction
+            title="LOM Profiling"
+            description="LOM Profiler will parse your logs and extract structured metrics."
+            agentLabel="LOM Profiler"
+            isExecuting={isExecuting}
+            onRun={runLomProfile}
+          />
+        );
+
+      case "lom_timeline":
+        return (
+          <PhaseAction
+            title="LOM Timeline & RCA"
+            description="LOM RCA Engine will reconstruct the incident timeline and propose root causes."
+            agentLabel="LOM RCA Engine"
+            isExecuting={isExecuting}
+            onRun={runLomTimeline}
+          />
+        );
+
+      case "lom_report":
+        return (
+          <PhaseAction
+            title="LOM Final Report"
+            description="LOM Report Gen will compile the findings into a formal RCA report."
+            agentLabel="LOM Report Gen"
+            isExecuting={isExecuting}
+            onRun={runLomReport}
+          />
+        );
+
+      case "lom_report_results":
+        return reportData ? (
+          <ReportView
+            narrative={reportData.narrative}
+            citations={reportData.citations}
+            communicatedRecommendations={
+              reportData.communicated_recommendations
+            }
+            stakeholderCalibration={reportData.stakeholder_calibration}
+            onNext={advanceFromResults}
+          />
+        ) : (
+          <LoadingState message="Loading LOM report..." />
         );
 
       case "complete":
