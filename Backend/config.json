@@ -1,6 +1,5 @@
 {
   "llm": {
-<<<<<<< HEAD
     "provider": "ollama",
     "primary_model": "gpt-oss:120b-cloud",
     "secondary_model": "minimax-m2:cloud",
@@ -16,15 +15,6 @@
   },
   "streamlit": {
     "api_url": "http://localhost:8000"
-=======
-    "primary_model": "qwen2.5:7b",
-    "reasoning_model": "deepseek-r1:7b",
-    "fast_reasoning_model": "phi3:mini",
-    "coder_model": "qwen2.5-coder:7b",
-    "secondary_model": "phi3:mini",
-    "temperature": 0.2,
-    "base_url": "http://172.31.48.1:11434",
-    "timeout": 120
->>>>>>> b8d22bb (Stabilize lite pipeline, LLM routing fixes, governance alignment, add MLRL module)
+
   }
 }
