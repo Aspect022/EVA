@@ -1,50 +1,51 @@
 # QuestionBuilderRules (Lite)
 ## Quick Question Generation for EVA QBII Agent
-**Version:** 1.0-lite (see QuestionBuilderRules.md for full version)
+**Version:** 3.0-lite
 
 ---
 
+## Task
+Generate **3-5 plain-language questions** to determine user intent.
+
 ## Rules
+- **Max 5 questions**.
+- No algorithm jargon.
+- No Regulatory, Fairness, or Interpretability questions.
+- No Ambiguity gate or Escalation registry.
 
-- Generate **3-5 plain-language questions** based on the dataset profile.
-- No algorithm or technical jargon. Write for a business user.
-- Each question must have: `question`, `question_type`, `why_asked`.
+## Question Definitions
 
-## Question Types
+| Type | Field | Description |
+|------|-------|-------------|
+| `goal` | `primary_objective` | Predict, explain, segment, detect anomalies, or forecast? |
+| `deployment` | `deployment_mode` | Automated, human-reviewed, or hybrid? |
+| `impact` | `decision_impact` | Who/what does this decision affect (individuals, operations, or analytics)? |
+| `error_cost` | `error_cost_direction` | Which error is worse: missing a case or a false alarm? |
+| `time` | `time_awareness` | Does the sequence of events over time matter? |
 
-| Type | Purpose |
-|------|---------|
-| `goal` | What does the user want to achieve? (predict, explain, segment, detect anomalies, forecast) |
-| `stakeholder` | Who will use the results and how? |
-| `priority` | What matters more — accuracy or explainability? Any regulatory needs? |
-| `time` | Does time ordering matter in this dataset? |
+## Conditional Logic
+1. **Always ask** `goal`.
+2. **If goal is predictive**: ask `deployment` and `impact`.
+3. **If predictive + automated/hybrid**: ask `error_cost`.
+4. **If temporal data detected**: ask `time`.
 
-## Mandatory First Question
+## Output Contract
+Return a `RawAnswerRecord` (JSON) matching `gal_schema.py`:
 
-Always ask the user what their primary goal is:
-- Predict an outcome
-- Explain what drives an outcome
-- Group/segment records
-- Detect anomalies
-- Forecast future values
-
-## Conditional Questions
-
-- If the dataset has a temporal column → ask about time sensitivity.
-- If domain is BANKING/HEALTHCARE/INSURANCE → ask about regulatory/compliance needs.
-- If a target column exists → ask about error cost preference (missing a case vs false alarm).
-
-## Output Format
-
-Return a JSON object:
 ```json
 {
   "questions": [
     {
-      "question": "What is the primary goal of this analysis?",
-      "question_type": "goal",
-      "why_asked": "Determines the modeling strategy"
+      "question": "text",
+      "question_type": "goal | deployment | impact | error_cost | time",
+      "why_asked": "reason"
     }
-  ]
+  ],
+  "ambiguity_flags": [],
+  "conservative_fallbacks_applied": []
 }
 ```
+
+## Hard Stop
+- **PREDICT** + no target column detected in `DatasetIdentity`.
+
