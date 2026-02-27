@@ -113,6 +113,10 @@ with col1:
                 st.session_state.has_visualizations = s_info.get("has_visualizations", False) if s_info else False
                 st.session_state.has_dashboard = s_info.get("has_dashboard", False) if s_info else False
                 st.session_state.has_report = s_info.get("has_report", False) if s_info else False
+                # Reset Quick Mode flags when switching sessions
+                st.session_state.quick_mode_available = False
+                st.session_state.quick_mode_enabled = False
+                st.session_state.source_session_id = None
                 # Restore questions state if identity exists but intent not confirmed
                 if s_info and s_info.get("has_identity") and not s_info.get("has_intent"):
                     try:
@@ -146,6 +150,10 @@ with col1:
             st.session_state.has_dashboard = False
             st.session_state.has_report = False
             st.session_state.pipeline_status = None
+            # Reset Quick Mode flags for a brand new session
+            st.session_state.quick_mode_available = False
+            st.session_state.quick_mode_enabled = False
+            st.session_state.source_session_id = None
             st.success(f"Session Created: {st.session_state.session_id[:8]}...")
         except Exception as e:
             st.error(f"Failed: {str(e)}")
@@ -163,7 +171,12 @@ with col1:
                     st.session_state.csv_filename = uploaded_file.name
                     st.success("File uploaded successfully!")
 
-                    # Check for Quick Mode availability
+                    # Reset Quick Mode flags for this session & dataset
+                    st.session_state.quick_mode_available = False
+                    st.session_state.quick_mode_enabled = False
+                    st.session_state.source_session_id = None
+
+                    # Check for Quick Mode availability (same dataset used in a previous completed session)
                     try:
                         check_resp = requests.post(f"{API_URL}/session/{st.session_state.session_id}/check-dataset", timeout=10)
                         if check_resp.status_code == 200:

@@ -244,31 +244,31 @@ with col2:
                             st.info("No Code Context Yet")
                             
                     with t5:
-                        if gal.get("timeline") and gal["timeline"].get("event_sequence"):
-                            st.markdown(f"**Overall Time Range:** {gal['timeline'].get('overall_start_time', '?')} to {gal['timeline'].get('overall_end_time', '?')}")
-                            if gal['timeline'].get('chronological_narrative'):
-                                st.markdown(f"_{gal['timeline']['chronological_narrative']}_")
+                        if gal.get("timeline") and gal["timeline"].get("events"):
+                            st.markdown(f"**Overall Time Range:** {gal['timeline'].get('incident_window_start', '?')} to {gal['timeline'].get('incident_window_end', '?')}")
+                            if gal['timeline'].get('overall_reasoning'):
+                                st.markdown(f"_{gal['timeline']['overall_reasoning']}_")
                             st.markdown("---")
                             
-                            for ev in gal["timeline"]["event_sequence"]:
+                            for ev in gal["timeline"]["events"]:
                                 badge = "🔴" if ev.get("severity") in ("ERROR", "CRITICAL") else ("🟡" if ev.get("severity") in ("WARN", "WARNING") else "🔵")
-                                st.markdown(f"{badge} **{ev.get('timestamp')}** | [{ev.get('source_file')}]")
+                                st.markdown(f"{badge} **{ev.get('timestamp')}** | [{ev.get('source')}]")
                                 st.markdown(f"**{ev.get('description')}**")
-                                if ev.get("associated_metric") or ev.get("associated_code"):
-                                    st.caption(f"Code: {ev.get('associated_code')} | Metric: {ev.get('associated_metric')}")
+                                if ev.get("evidence_ref"):
+                                    st.caption(f"Evidence Ref: {ev.get('evidence_ref')}")
                                 st.markdown("---")
                         else:
                             st.info("No Timeline Yet")
                             
                     with t6:
                         if gal.get("anomaly_findings") and gal["anomaly_findings"].get("anomalies"):
-                            st.error(f"**Primary Disruption System:** {gal['anomaly_findings'].get('primary_disruption_system', 'Unknown')}")
                             for anom in gal["anomaly_findings"]["anomalies"]:
-                                st.markdown(f"### 🚨 {anom.get('type')}: {anom.get('description')}")
-                                st.markdown(f"**First seen:** {anom.get('first_seen_timestamp')} | **Last seen:** {anom.get('last_seen_timestamp')}")
-                                st.markdown(f"**Affected Systems:** {', '.join(anom.get('affected_systems', []))}")
-                                if anom.get("cascade_pattern"):
-                                    st.info(f"Cascade: {anom['cascade_pattern']}")
+                                st.markdown(f"### 🚨 {anom.get('anomaly_type', 'Anomaly')}: {anom.get('description')}")
+                                st.markdown(f"**Severity:** {anom.get('severity')} | **Time Window:** {anom.get('time_window', 'N/A')} | **Confidence:** {anom.get('confidence')}")
+                                if anom.get("affected_components"):
+                                    st.markdown(f"**Affected Systems:** {', '.join(anom.get('affected_components', []))}")
+                                if anom.get("evidence"):
+                                    st.markdown(f"**Evidence:** {', '.join(anom.get('evidence', []))}")
                                 st.markdown("---")
                         else:
                             st.info("No Anomalies Found Yet")
@@ -276,7 +276,7 @@ with col2:
                     with t7:
                         if gal.get("rca_hypotheses"):
                             rca = gal["rca_hypotheses"]
-                            st.markdown(f"**Primary Suspect Entity:** {rca.get('primary_suspect_entity', 'Unknown')}")
+                            st.markdown(f"**Primary Suspect:** {rca.get('primary_suspect', 'Unknown')}")
                             if rca.get("overall_reasoning"):
                                 st.markdown(f"_{rca['overall_reasoning']}_")
                             st.markdown("---")
@@ -284,14 +284,21 @@ with col2:
                                 plaus = hyp.get("plausibility", "Unknown")
                                 badge = {"High": "🟢", "Moderate": "🟡", "Low": "🔴"}.get(plaus, "⚪")
                                 st.markdown(f"### {badge} Hypothesis {i+1}: {plaus} Plausibility")
-                                st.markdown(f"**Root Cause:** {hyp.get('proposed_root_cause')}")
+                                st.markdown(f"**Root Cause:** {hyp.get('hypothesis')}")
+                                st.markdown(f"**Category:** {hyp.get('category')} | **Reasoning:** {hyp.get('reasoning')}")
+                                
                                 if hyp.get("five_whys"):
                                     with st.expander("5 Whys Analysis"):
                                         for why in hyp["five_whys"]:
                                             st.markdown(f"- {why}")
+                                            
                                 with st.expander("Evidence Chain"):
                                     for ev in hyp.get("evidence_chain", []):
-                                        st.markdown(f"- {ev}")
+                                        if isinstance(ev, dict):
+                                            st.markdown(f"- **{ev.get('source_type')}** [{ev.get('reference')}]: {ev.get('observation')}")
+                                        else:
+                                            st.markdown(f"- {ev}")
+                                            
                                 st.caption(f"Confidence Note: {hyp.get('confidence_note', 'None')}")
                                 st.markdown("---")
                         else:

@@ -63,12 +63,55 @@ const TYPE_LABELS: Record<string, string> = {
   single_select: "Single Select",
 }
 
+const DEFAULT_OPTIONS: Record<string, string[]> = {
+  goal: [
+    "Understand what drives the main outcome",
+    "Predict future outcomes as accurately as possible",
+    "Segment users or records into meaningful groups",
+    "Detect anomalies or unusual behavior in the data",
+  ],
+  stakeholder: [
+    "Executive leadership / C‑level",
+    "Operations / frontline teams",
+    "Product / growth / marketing",
+    "Data / analytics / engineering",
+  ],
+  priority: [
+    "Maximize accuracy, even if it costs compute",
+    "Prefer simpler, more explainable results",
+    "Optimize for speed / low latency",
+    "Balance accuracy, cost, and interpretability",
+  ],
+  time: [
+    "Focus on the most recent 30–90 days",
+    "Look at this quarter vs. last quarter",
+    "Compare this year vs. prior years",
+    "Study the full historical range available",
+  ],
+}
+
+function getOptionsForQuestion(q: ParsedQuestion): string[] {
+  if (q.options.length > 0) return q.options
+  const keyed = DEFAULT_OPTIONS[q.questionType]
+  if (keyed && keyed.length) return keyed
+  // Generic fallback scale
+  return [
+    "Very low priority / impact",
+    "Low priority / impact",
+    "Medium priority / impact",
+    "High priority / impact",
+  ]
+}
+
 export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [currentIdx, setCurrentIdx] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const parsed = questions.map(parseQuestion)
+  const parsed = questions.map(parseQuestion).map(q => ({
+    ...q,
+    options: getOptionsForQuestion(q),
+  }))
   const current = parsed[currentIdx]
   const isLast = currentIdx === parsed.length - 1
   const isFirst = currentIdx === 0

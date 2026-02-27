@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { UploadCloud, FileType, CheckCircle, Zap } from "lucide-react"
+import { UploadCloud, FileType, CheckCircle } from "lucide-react"
 import { useSession } from "@/lib/session-context"
 
 export function DatasetUpload() {
   const [isDragging, setIsDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const { isExecuting, createAndUpload, quickModeAvailable, quickModeEnabled, setQuickModeEnabled, runQuickMode } = useSession()
+  const { isExecuting, createAndUpload } = useSession()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -94,25 +94,6 @@ export function DatasetUpload() {
               {(file.size / 1024).toFixed(2)} KB
             </p>
 
-            {quickModeAvailable && (
-              <label className="flex items-center gap-2 mb-6 cursor-pointer select-none group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={quickModeEnabled}
-                    onChange={(e) => setQuickModeEnabled(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 rounded-full bg-[#0A0A0A] border border-white/[0.06] peer-checked:bg-[#F97316]/80 transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/40 peer-checked:translate-x-4 peer-checked:bg-white transition-transform" />
-                </div>
-                <Zap className="w-3.5 h-3.5 text-[#F97316]" />
-                <span className="text-sm text-white/40 group-hover:text-white transition-colors">
-                  Quick Mode
-                </span>
-              </label>
-            )}
-            
             <div className="flex gap-4">
               <button 
                 onClick={() => setFile(null)}
