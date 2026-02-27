@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pandas as pd
 import plotly.express as px
@@ -7,6 +8,8 @@ import plotly.io as pio
 from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 from typing import Dict, Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from Backend.agents.llm_core import invoke_agent
 from Backend.models.gal_schema import (
@@ -173,12 +176,20 @@ Now create YOUR visualization plan based on the actual data above. Fill in EVERY
             model_type="reasoning",
         )
 
+        logger.info("VPE Planner raw output: total_planned=%s, visualizations_count=%s",
+                    result.total_planned, len(result.visualizations) if isinstance(result.visualizations, list) else 0)
+
         # Filter empty entries
         valid_vizs = []
         if isinstance(result.visualizations, list):
             for v in result.visualizations:
                 if isinstance(v, VisualizationEntry) and v.question.strip():
                     valid_vizs.append(v)
+                else:
+                    logger.warning("VPE: Filtered out invalid visualization entry: %s", v)
+
+        logger.info("VPE Planner: %d valid visualizations after filtering (from %d raw)",
+                    len(valid_vizs), len(result.visualizations) if isinstance(result.visualizations, list) else 0)
 
         result.visualizations = valid_vizs
         result.total_planned = len(valid_vizs)
@@ -196,8 +207,14 @@ Now create YOUR visualization plan based on the actual data above. Fill in EVERY
             variables = viz.variables_used if isinstance(viz.variables_used, list) else []
             # Filter to columns that actually exist in the dataframe
             available = [col for col in variables if col in df.columns]
+            missing = [col for col in variables if col not in df.columns]
+
+            if missing:
+                logger.warning("VPE Chart '%s': columns %s not found in DataFrame (available: %s)",
+                               viz.question[:50], missing, list(df.columns[:10]))
 
             if not available:
+                logger.warning("VPE Chart '%s': no usable columns, skipping", viz.question[:50])
                 return None
 
             chart_type = viz.chart_type.lower().strip()
@@ -280,7 +297,8 @@ Now create YOUR visualization plan based on the actual data above. Fill in EVERY
 
             return json.loads(fig.to_json())
 
-        except Exception:
+        except Exception as e:
+            logger.error("VPE _create_chart failed for '%s': %s", viz.question[:50], e, exc_info=True)
             return None
 
     @staticmethod
@@ -332,6 +350,64 @@ Now create YOUR visualization plan based on the actual data above. Fill in EVERY
             overall_reasoning=plan.overall_reasoning,
         )
 
+    # ── Fallback: Auto-generate basic charts ──
+
+    @staticmethod
+    def _auto_generate_plan(df: pd.DataFrame) -> VPEPlannerOutput:
+        """Generate a basic visualization plan from DataFrame columns when LLM planner fails."""
+        logger.info("VPE: Auto-generating fallback visualization plan from DataFrame columns")
+        vizs: List[VisualizationEntry] = []
+
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=["object", "category", "bool"]).columns.tolist()
+
+        # Distribution histograms for numeric columns (up to 4)
+        for col in numeric_cols[:4]:
+            vizs.append(VisualizationEntry(
+                question=f"What is the distribution of {col}?",
+                related_finding="auto_generated",
+                variables_used=[col],
+                chart_type="histogram",
+                chart_type_reasoning=f"Histogram shows the frequency distribution of the numeric column '{col}'",
+                audience_calibration="general",
+                interpretation=f"Shows how values of '{col}' are distributed across the dataset.",
+                confidence_note="Auto-generated fallback visualization.",
+            ))
+
+        # Value counts bar charts for categorical columns (up to 4)
+        for col in categorical_cols[:4]:
+            if df[col].nunique() <= 20:
+                vizs.append(VisualizationEntry(
+                    question=f"What are the most common values of {col}?",
+                    related_finding="auto_generated",
+                    variables_used=[col],
+                    chart_type="bar",
+                    chart_type_reasoning=f"Bar chart shows value counts for categorical column '{col}'",
+                    audience_calibration="general",
+                    interpretation=f"Shows the frequency of each category in '{col}'.",
+                    confidence_note="Auto-generated fallback visualization.",
+                ))
+
+        # Correlation heatmap if enough numeric columns
+        if len(numeric_cols) >= 3:
+            vizs.append(VisualizationEntry(
+                question="What are the correlations between numeric features?",
+                related_finding="auto_generated",
+                variables_used=numeric_cols[:8],
+                chart_type="heatmap",
+                chart_type_reasoning="Heatmap reveals pairwise correlations between numeric features",
+                audience_calibration="general",
+                interpretation="Shows pairwise linear correlations. Values near ±1 indicate strong relationships.",
+                confidence_note="Auto-generated fallback visualization.",
+            ))
+
+        logger.info("VPE: Auto-generated %d fallback visualizations", len(vizs))
+        return VPEPlannerOutput(
+            visualizations=vizs,
+            total_planned=len(vizs),
+            overall_reasoning="Fallback plan: LLM planner returned no valid visualizations; auto-generated basic charts from dataset columns.",
+        )
+
     # ── Full Pipeline Entry ──
 
     @staticmethod
@@ -354,12 +430,20 @@ Now create YOUR visualization plan based on the actual data above. Fill in EVERY
                 rules_mode=rules_mode,
             )
 
+            # Fallback: if LLM returned 0 valid visualizations, auto-generate
+            if not plan.visualizations or len(plan.visualizations) == 0:
+                logger.warning("VPE: LLM planner returned 0 visualizations, using fallback auto-generation")
+                plan = VPEAgent._auto_generate_plan(df)
+
             record = VPEAgent.execute(
                 plan=plan,
                 session_id=session_id,
                 df=df,
             )
 
+            logger.info("VPE: Final result — %d rendered, %d failed",
+                        record.total_rendered, record.total_failed)
             return record
         except Exception as e:
+            logger.error("VPE Agent execution failed: %s", e, exc_info=True)
             raise Exception(f"VPE Agent execution failed: {str(e)}")

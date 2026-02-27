@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "@/lib/session-context"
 import { DatasetUpload } from "@/components/pipeline/DatasetUpload"
 import { QuestionBuilder } from "@/components/pipeline/QuestionBuilder"
+import { VisualizationGallery } from "@/components/pipeline/VisualizationGallery"
+import { KPIDashboard } from "@/components/pipeline/KPIDashboard"
+import { ReportView } from "@/components/pipeline/ReportView"
 import { GlobalAgenticLedger } from "@/components/gal/GlobalAgenticLedger"
 import { Play, CheckCircle2 } from "lucide-react"
 
@@ -30,10 +33,9 @@ export default function DashboardPage() {
     currentPhase,
     isExecuting,
     questions,
-    hypotheses,
-    features,
-    dashboardStats,
-    report,
+    visualizationsData,
+    dashboardData,
+    reportData,
     quickModeEnabled,
     runPhase1a,
     submitUserAnswers,
@@ -44,6 +46,7 @@ export default function DashboardPage() {
     runADC,
     runRG,
     runQuickMode,
+    advanceFromResults,
   } = useSession()
 
   const renderPhaseContent = () => {
@@ -122,6 +125,25 @@ export default function DashboardPage() {
           />
         )
 
+      case "vpe_results":
+        return visualizationsData ? (
+          <VisualizationGallery
+            visualizations={visualizationsData.visualizations as Array<{
+              question: string; chart_type: string; interpretation: string;
+              confidence_note: string; validation_result: string;
+              plotly_config: Record<string, unknown> | null;
+              variables_used: string[]; related_finding: string;
+              chart_type_reasoning: string; audience_calibration: string;
+            }>}
+            totalRendered={visualizationsData.total_rendered}
+            totalFailed={visualizationsData.total_failed}
+            overallReasoning={visualizationsData.overall_reasoning}
+            onNext={advanceFromResults}
+          />
+        ) : (
+          <LoadingState message="Loading visualizations..." />
+        )
+
       case "adc":
         return (
           <PhaseAction
@@ -133,6 +155,29 @@ export default function DashboardPage() {
           />
         )
 
+      case "adc_results":
+        return dashboardData ? (
+          <KPIDashboard
+            kpis={dashboardData.kpis as Array<{
+              name: string; value: string | number; justification: string; derivation_source: string;
+            }>}
+            alerts={dashboardData.alerts as Array<{
+              alert_type: string; description: string; evidence_ref: string; confidence: string;
+            }>}
+            recommendations={dashboardData.recommendations as Array<{
+              action: string; target_group: string; expected_impact: string; urgency: string;
+              confidence: string; supporting_evidence_ref: string; supporting_hypothesis_ref: string;
+            }>}
+            panels={dashboardData.panels as Array<{
+              panel_name: string; description: string; elements: unknown[];
+            }>}
+            overallReasoning={dashboardData.overall_reasoning}
+            onNext={advanceFromResults}
+          />
+        ) : (
+          <LoadingState message="Loading dashboard..." />
+        )
+
       case "rg":
         return (
           <PhaseAction
@@ -142,6 +187,18 @@ export default function DashboardPage() {
             isExecuting={isExecuting}
             onRun={runRG}
           />
+        )
+
+      case "rg_results":
+        return reportData ? (
+          <ReportView
+            narrative={reportData.narrative}
+            citations={reportData.citations}
+            communicatedRecommendations={reportData.communicated_recommendations}
+            stakeholderCalibration={reportData.stakeholder_calibration}
+          />
+        ) : (
+          <LoadingState message="Loading report..." />
         )
 
       case "complete":
@@ -159,7 +216,7 @@ export default function DashboardPage() {
               <CheckCircle2 className="w-12 h-12 text-green-400" />
             </motion.div>
             <h3 className="text-2xl font-bold text-green-400">Pipeline Complete</h3>
-            <p className="text-[var(--dusty-denim)] text-center">
+            <p className="text-white/40 text-center">
               All agents have finished execution. Your report and dashboard are ready.
             </p>
           </motion.div>
@@ -211,7 +268,8 @@ function PhaseAction({
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-        className="inline-block px-3 py-1.5 rounded-lg bg-[var(--prussian-blue)] border border-[var(--dusk-blue)]/30 text-xs font-mono text-[var(--cta-orange)] uppercase tracking-wider"
+        className="inline-block px-3 py-1.5 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-xs font-mono text-[#F97316] uppercase tracking-[0.15em]"
+        style={{ fontFamily: "var(--font-fira-code, 'Fira Code', monospace)" }}
       >
         {agentLabel}
       </motion.div>
@@ -220,7 +278,7 @@ function PhaseAction({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, type: "spring", stiffness: 80 }}
-        className="text-3xl font-bold text-[var(--alabaster-grey)]"
+        className="text-3xl font-bold text-white"
       >
         {title}
       </motion.h2>
@@ -229,7 +287,7 @@ function PhaseAction({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.25 }}
-        className="text-[var(--dusty-denim)] max-w-lg mx-auto"
+        className="text-white/40 max-w-lg mx-auto"
       >
         {description}
       </motion.p>
@@ -245,7 +303,7 @@ function PhaseAction({
         whileTap={{ scale: 0.97 }}
         onClick={onRun}
         disabled={isExecuting}
-        className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[var(--cta-orange)] hover:bg-[var(--cta-orange)]/90 text-white font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-lg shadow-[var(--cta-orange)]/20"
+        className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-lg shadow-[#F97316]/20"
       >
         {isExecuting ? (
           <>
@@ -277,9 +335,9 @@ function LoadingState({ message }: { message: string }) {
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        className="w-12 h-12 border-4 border-[var(--dusk-blue)] border-t-[var(--cta-orange)] rounded-full"
+        className="w-12 h-12 border-4 border-white/[0.06] border-t-[#F97316] rounded-full"
       />
-      <p className="text-[var(--dusty-denim)] font-mono">{message}</p>
+      <p className="text-white/40 font-mono">{message}</p>
     </motion.div>
   )
 }

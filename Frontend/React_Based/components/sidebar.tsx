@@ -19,6 +19,8 @@ const navItems = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
+const MONO_FONT = { fontFamily: "var(--font-fira-code, 'Fira Code', monospace)" }
+
 const sidebarVariants = {
   hidden: { x: -20, opacity: 0 },
   visible: {
@@ -53,12 +55,12 @@ export function Sidebar() {
       initial="hidden"
       animate="visible"
       variants={sidebarVariants}
-      className={`relative h-screen bg-[var(--prussian-blue)] border-r border-[var(--dusk-blue)]/30 transition-all duration-300 flex flex-col ${
+      className={`relative h-screen bg-black border-r border-white/[0.06] transition-all duration-300 flex flex-col ${
         isCollapsed ? "w-20" : "w-64"
       }`}
     >
       {/* Logo area */}
-      <div className="flex items-center justify-between p-4 border-b border-[var(--dusk-blue)]/30">
+      <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
         <AnimatePresence mode="wait">
           {!isCollapsed ? (
             <motion.div
@@ -69,7 +71,7 @@ export function Sidebar() {
               transition={{ duration: 0.2 }}
             >
               <Link href="/" className="flex items-center gap-2">
-                <span className="text-2xl font-black text-[var(--alabaster-grey)] tracking-tighter">
+                <span className="text-2xl font-black text-white tracking-[0.1em]" style={MONO_FONT}>
                   EVA
                 </span>
               </Link>
@@ -84,7 +86,7 @@ export function Sidebar() {
               className="mx-auto"
             >
               <Link href="/">
-                <span className="text-xl font-black text-[var(--alabaster-grey)] tracking-tighter">
+                <span className="text-xl font-black text-white tracking-[0.1em]" style={MONO_FONT}>
                   E
                 </span>
               </Link>
@@ -95,9 +97,9 @@ export function Sidebar() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`p-1.5 rounded-lg hover:bg-[var(--dusk-blue)]/30 text-[var(--dusty-denim)] hover:text-[var(--alabaster-grey)] transition-colors ${
+          className={`p-1.5 rounded-lg hover:bg-white/[0.06] text-white/40 hover:text-white transition-colors ${
             isCollapsed
-              ? "absolute -right-4 top-5 bg-[var(--prussian-blue)] border border-[var(--dusk-blue)]/30 shadow-lg"
+              ? "absolute -right-4 top-5 bg-black border border-white/[0.06] shadow-lg"
               : ""
           }`}
         >
@@ -123,8 +125,8 @@ export function Sidebar() {
                   isCollapsed ? "justify-center" : "justify-start"
                 } gap-3 px-3 py-3 rounded-xl transition-all duration-200 group cursor-pointer ${
                   isActive
-                    ? "bg-[var(--cta-orange)]/10 text-[var(--alabaster-grey)]"
-                    : "text-[var(--dusty-denim)] hover:bg-[var(--dusk-blue)]/15 hover:text-[var(--alabaster-grey)]"
+                    ? "bg-[#F97316]/10 text-white"
+                    : "text-white/40 hover:bg-white/[0.04] hover:text-white/80"
                 }`}
                 title={isCollapsed ? item.name : undefined}
               >
@@ -132,7 +134,7 @@ export function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-[var(--cta-orange)]"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-[#F97316]"
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
@@ -143,7 +145,7 @@ export function Sidebar() {
                 >
                   <Icon
                     className={`w-5 h-5 transition-colors ${
-                      isActive ? "text-[var(--cta-orange)]" : ""
+                      isActive ? "text-[#F97316]" : ""
                     }`}
                   />
                 </motion.div>
@@ -175,30 +177,30 @@ export function Sidebar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ type: "spring", stiffness: 100, damping: 16 }}
-            className="p-4 border-t border-[var(--dusk-blue)]/30"
+            className="p-4 border-t border-white/[0.06]"
           >
             {sessionId ? (
               <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wider text-[var(--dusty-denim)] font-mono">
+                <span className="text-xs uppercase tracking-[0.15em] text-white/30 font-mono" style={MONO_FONT}>
                   Active Session
                 </span>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-breathe" />
-                  <span className="text-sm font-mono text-[var(--alabaster-grey)] truncate">
+                  <span className="text-sm font-mono text-white truncate" style={MONO_FONT}>
                     {sessionId.slice(0, 12)}...
                   </span>
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[var(--dusk-blue)]/20 flex items-center justify-center text-xs font-bold text-[var(--dusty-denim)]">
+                <div className="w-8 h-8 rounded-xl bg-white/[0.04] flex items-center justify-center text-xs font-bold text-white/40">
                   U
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-[var(--alabaster-grey)]">
+                  <span className="text-sm font-medium text-white">
                     User
                   </span>
-                  <span className="text-xs text-[var(--dusty-denim)]">
+                  <span className="text-xs text-white/30">
                     Local Environment
                   </span>
                 </div>

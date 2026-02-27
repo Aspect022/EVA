@@ -241,6 +241,73 @@ def get_gal(session_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.get("/{session_id}/visualizations")
+def get_visualizations(session_id: str):
+    """Retrieves full visualization data including Plotly configs for frontend rendering."""
+    try:
+        gal = GALManager.read_gal(session_id)
+        if not gal.visualization_plan:
+            return {"visualizations": [], "total_rendered": 0, "total_failed": 0, "overall_reasoning": ""}
+
+        viz_data = []
+        for v in (gal.visualization_plan.visualizations or []):
+            if hasattr(v, "model_dump"):
+                viz_data.append(v.model_dump())
+            elif isinstance(v, dict):
+                viz_data.append(v)
+
+        return {
+            "visualizations": viz_data,
+            "total_rendered": gal.visualization_plan.total_rendered,
+            "total_failed": gal.visualization_plan.total_failed,
+            "total_planned": gal.visualization_plan.total_planned,
+            "overall_reasoning": gal.visualization_plan.overall_reasoning,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{session_id}/dashboard")
+def get_dashboard(session_id: str):
+    """Retrieves full dashboard data including KPIs, alerts, recommendations, and panels."""
+    try:
+        gal = GALManager.read_gal(session_id)
+        if not gal.dashboard_plan:
+            return {"kpis": [], "alerts": [], "recommendations": [], "panels": [], "overall_reasoning": ""}
+
+        dp = gal.dashboard_plan
+        return {
+            "kpis": [k.model_dump() if hasattr(k, "model_dump") else k for k in (dp.kpis or [])],
+            "alerts": [a.model_dump() if hasattr(a, "model_dump") else a for a in (dp.alerts or [])],
+            "recommendations": [r.model_dump() if hasattr(r, "model_dump") else r for r in (dp.recommendations or [])],
+            "panels": [p.model_dump() if hasattr(p, "model_dump") else p for p in (dp.panels or [])],
+            "stakeholder_calibration": dp.stakeholder_calibration,
+            "overall_reasoning": dp.overall_reasoning,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{session_id}/report")
+def get_report(session_id: str):
+    """Retrieves the full narrative report."""
+    try:
+        gal = GALManager.read_gal(session_id)
+        if not gal.report_memory:
+            return {"narrative": "", "citations": [], "communicated_recommendations": []}
+
+        rm = gal.report_memory
+        return {
+            "narrative": rm.narrative,
+            "citations": rm.citations or [],
+            "included_visualizations": rm.included_visualizations or [],
+            "communicated_recommendations": rm.communicated_recommendations or [],
+            "stakeholder_calibration": rm.stakeholder_calibration,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 # --- Phase 2: IHE Hypothesis Generation ---
 
 class Phase2Response(BaseModel):
@@ -546,3 +613,152 @@ async def run_quick_mode(session_id: str, source_session_id: str):
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+# ============================================================================
+# LOM ENDPOINTS — Logging, Monitoring & Observability
+# ============================================================================
+
+ALLOWED_LOM_EXTENSIONS = {".json", ".log", ".txt", ".csv", ".py", ".js", ".ts", ".yaml", ".yml"}
+MAX_LOM_FILE_SIZE = 50 * 1024 * 1024  # 50MB per file
+
+
+@router.post("/{session_id}/upload-lom")
+async def upload_lom_files(session_id: str, files: List[UploadFile] = File(...)):
+    """Upload LOM data files (logs, JSON, Python, etc.) for observability analysis."""
+    # Verify session exists
+    try:
+        GALManager.read_gal(session_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Session not found. Create a session first.")
+
+    # Initialize LOM if needed
+    try:
+        LOMManager.read_lom_gal(session_id)
+    except FileNotFoundError:
+        LOMManager.create_lom_session(session_id)
+
+    upload_dir = LOMManager.get_lom_upload_path(session_id)
+    uploaded = []
+    errors = []
+
+    for file in files:
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in ALLOWED_LOM_EXTENSIONS:
+            errors.append(f"{file.filename}: unsupported extension '{ext}'")
+            continue
+
+        save_path = upload_dir / file.filename
+        try:
+            content = await file.read()
+            if len(content) > MAX_LOM_FILE_SIZE:
+                errors.append(f"{file.filename}: exceeds 50MB limit")
+                continue
+            with open(save_path, "wb") as f:
+                f.write(content)
+            uploaded.append({"filename": file.filename, "size": len(content)})
+        except Exception as e:
+            errors.append(f"{file.filename}: {str(e)}")
+
+    return {
+        "session_id": session_id,
+        "uploaded": uploaded,
+        "errors": errors,
+        "total_uploaded": len(uploaded),
+    }
+
+
+# --- LOM Profile ---
+
+class LOMProfileResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    source_inventory: Dict[str, Any] = {}
+
+@router.post("/{session_id}/execute/lom-profile", response_model=LOMProfileResponse)
+def execute_lom_profile(session_id: str):
+    """LOM Phase 1: Parse uploaded files and profile logs/metrics."""
+    try:
+        result = start_lom_profile(session_id)
+        return LOMProfileResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- LOM Timeline + RCA ---
+
+class LOMTimelineResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    timeline_events: int = 0
+    anomalies_found: int = 0
+    hypotheses_count: int = 0
+    hypotheses: List[Dict] = []
+
+@router.post("/{session_id}/execute/lom-timeline", response_model=LOMTimelineResponse)
+def execute_lom_timeline(session_id: str):
+    """LOM Phase 2: Timeline reconstruction + anomaly detection + RCA hypothesis generation."""
+    try:
+        result = start_lom_timeline(session_id)
+        return LOMTimelineResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- LOM Standalone RCA ---
+
+class LOMRCAResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    primary_suspect: str = ""
+    hypotheses_count: int = 0
+    hypotheses: List[Dict] = []
+
+@router.post("/{session_id}/execute/lom-rca", response_model=LOMRCAResponse)
+def execute_lom_rca(session_id: str):
+    """LOM: Re-run RCA hypothesis generation (if timeline already exists)."""
+    try:
+        result = start_lom_rca(session_id)
+        return LOMRCAResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- LOM Report ---
+
+class LOMReportResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    report: Dict[str, Any] = {}
+
+@router.post("/{session_id}/execute/lom-report", response_model=LOMReportResponse)
+def execute_lom_report(session_id: str):
+    """LOM Phase 3: Generate final RCA narrative report."""
+    try:
+        result = start_lom_report(session_id)
+        return LOMReportResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- LOM GAL Retrieval ---
+
+@router.get("/{session_id}/lom-gal")
+def get_lom_gal(session_id: str):
+    """Retrieves the current state of the LOM Analysis Ledger."""
+    try:
+        lom_gal = LOMManager.read_lom_gal(session_id)
+        return lom_gal.model_dump()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="LOM_GAL not found for this session. Upload LOM files first.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

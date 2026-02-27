@@ -29,9 +29,9 @@ const linkGroups = [
   {
     title: "Product",
     links: [
-      { label: "Documentation", href: "#" },
-      { label: "Architecture", href: "#agents" },
-      { label: "GAL Trace", href: "#gal-trace" },
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Architecture", href: "/#agents" },
+      { label: "GAL Trace", href: "/#gal-trace" },
     ],
   },
   {
@@ -39,13 +39,13 @@ const linkGroups = [
     links: [
       { label: "Privacy Policy", href: "#" },
       { label: "Terms of Service", href: "#" },
-      { label: "Security", href: "#security" },
+      { label: "Security", href: "/#security" },
     ],
   },
 ];
 
 const socials = [
-  { icon: Github, href: "#", label: "GitHub" },
+  { icon: Github, href: "https://github.com/Aspect022/EVA", label: "GitHub" },
   { icon: Twitter, href: "#", label: "X / Twitter" },
   { icon: Linkedin, href: "#", label: "LinkedIn" },
 ];

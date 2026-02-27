@@ -105,6 +105,31 @@ export interface QuickModeEvent {
   [key: string]: unknown
 }
 
+export interface VisualizationsData {
+  visualizations: Array<Record<string, unknown>>
+  total_rendered: number
+  total_failed: number
+  total_planned: number
+  overall_reasoning: string
+}
+
+export interface DashboardData {
+  kpis: Array<Record<string, unknown>>
+  alerts: Array<Record<string, unknown>>
+  recommendations: Array<Record<string, unknown>>
+  panels: Array<Record<string, unknown>>
+  stakeholder_calibration: string
+  overall_reasoning: string
+}
+
+export interface ReportData {
+  narrative: string
+  citations: string[]
+  included_visualizations: string[]
+  communicated_recommendations: string[]
+  stakeholder_calibration: string
+}
+
 // --- API Functions ---
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -195,6 +220,15 @@ export const api = {
 
   getGAL: (sessionId: string) =>
     apiFetch<Record<string, unknown>>(`/session/${sessionId}/gal`),
+
+  getVisualizations: (sessionId: string) =>
+    apiFetch<VisualizationsData>(`/session/${sessionId}/visualizations`),
+
+  getDashboard: (sessionId: string) =>
+    apiFetch<DashboardData>(`/session/${sessionId}/dashboard`),
+
+  getReport: (sessionId: string) =>
+    apiFetch<ReportData>(`/session/${sessionId}/report`),
 
   checkDataset: (sessionId: string) =>
     apiFetch<CheckDatasetResponse>(

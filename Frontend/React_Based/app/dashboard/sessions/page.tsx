@@ -60,13 +60,13 @@ export default function SessionsPage() {
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-[var(--alabaster-grey)]">Sessions</h1>
-          <p className="text-[var(--dusty-denim)] text-sm mt-1">Previous analysis sessions</p>
+        <h1 className="text-3xl font-bold text-white">Sessions</h1>
+          <p className="text-white/40 text-sm mt-1">Previous analysis sessions</p>
         </div>
         <button
           onClick={loadSessions}
           disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--dusk-blue)] text-[var(--dusty-denim)] hover:text-[var(--alabaster-grey)] hover:bg-[var(--prussian-blue)] transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/[0.06] text-white/40 hover:text-white hover:bg-white/[0.04] transition-all disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           Refresh
@@ -81,13 +81,13 @@ export default function SessionsPage() {
 
       {isLoading && sessions.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="w-10 h-10 border-4 border-[var(--dusk-blue)] border-t-[var(--dusty-denim)] rounded-full animate-spin" />
-          <p className="text-[var(--dusty-denim)] font-mono text-sm">Loading sessions...</p>
+          <div className="w-10 h-10 border-4 border-white/[0.06] border-t-white/40 rounded-full animate-spin" />
+          <p className="text-white/40 font-mono text-sm">Loading sessions...</p>
         </div>
       ) : sessions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4 border border-[var(--dusk-blue)] rounded-xl bg-[var(--prussian-blue)]/20">
-          <Clock className="w-12 h-12 text-[var(--dusk-blue)]" />
-          <p className="text-[var(--dusty-denim)]">No sessions found. Start a new analysis from the Pipeline page.</p>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4 border border-white/[0.06] rounded-xl bg-white/[0.02]">
+          <Clock className="w-12 h-12 text-white/20" />
+          <p className="text-white/40">No sessions found. Start a new analysis from the Pipeline page.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -98,18 +98,18 @@ export default function SessionsPage() {
             return (
               <div
                 key={session.session_id}
-                className="flex items-center justify-between p-5 rounded-xl border border-[var(--dusk-blue)] bg-[var(--prussian-blue)]/20 hover:bg-[var(--prussian-blue)]/40 transition-all group cursor-pointer"
+                className="flex items-center justify-between p-5 rounded-xl border border-white/[0.06] bg-[#0A0A0A] hover:bg-white/[0.04] transition-all group cursor-pointer"
                 onClick={() => router.push(`/dashboard?session=${session.session_id}`)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-[var(--prussian-blue)] border border-[var(--dusk-blue)] flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-[var(--dusty-denim)]" />
+                  <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white/40" />
                   </div>
                   <div>
-                    <p className="font-mono text-sm text-[var(--alabaster-grey)]">
+                    <p className="font-mono text-sm text-white">
                       {session.session_id.slice(0, 12)}...
                     </p>
-                    <p className="text-xs text-[var(--dusty-denim)] mt-0.5">
+                    <p className="text-xs text-white/40 mt-0.5">
                       {session.csv_file || "No file"} · {phase}
                     </p>
                   </div>
@@ -122,13 +122,13 @@ export default function SessionsPage() {
                       <div
                         key={i}
                         className={`w-3 h-1.5 rounded-full transition-colors ${
-                          i < progress ? "bg-[var(--dusty-denim)]" : "bg-[var(--dusk-blue)]"
+                          i < progress ? "bg-[#3B82F6]" : "bg-white/[0.06]"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-xs font-mono text-[var(--dusty-denim)]">{progress}/9</span>
-                  <ArrowRight className="w-4 h-4 text-[var(--dusk-blue)] group-hover:text-[var(--alabaster-grey)] transition-colors" />
+                  <span className="text-xs font-mono text-white/40">{progress}/9</span>
+                  <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white transition-colors" />
                 </div>
               </div>
             )

@@ -1,0 +1,182 @@
+{
+"learning_objects": [
+{
+"general": {
+"identifier": "LOM-DS-001",
+"title": "Introduction to Python Programming",
+"language": "en",
+"description": "A beginner friendly course introducing Python syntax, variables, loops and functions.",
+"keywords": ["python", "programming", "coding", "beginner"],
+"coverage": "Undergraduate Level",
+"structure": "atomic",
+"aggregationLevel": 1
+},
+"lifecycle": {
+"version": "1.0",
+"status": "final",
+"contributors": [
+{
+"role": "author",
+"entity": "Dr. Meera Sharma",
+"date": "2023-01-10"
+},
+{
+"role": "editor",
+"entity": "Rahul Nair",
+"date": "2023-01-15"
+}
+]
+},
+"technical": {
+"format": "video/mp4",
+"size": "550MB",
+"location": "https://examplelms.org/python/intro",
+"duration": "PT3H20M",
+"requirement": {
+"type": "browser",
+"name": "Chrome",
+"minimumVersion": "90"
+}
+},
+"educational": {
+"learningResourceType": "lecture",
+"interactivityType": "expositive",
+"difficulty": "easy",
+"typicalLearningTime": "PT6H",
+"description": "Students will learn to write simple Python programs and understand basic programming logic.",
+"language": "en"
+},
+"rights": {
+"cost": "no",
+"copyrightAndOtherRestrictions": "yes",
+"description": "Creative Commons Attribution 4.0"
+},
+"classification": {
+"purpose": "discipline",
+"taxonPath": {
+"source": "ACM Computing Classification",
+"taxon": {
+"id": "I.2.0",
+"entry": "Computer Science - Programming"
+}
+}
+}
+},
+
+{
+  "general": {
+    "identifier": "LOM-DS-002",
+    "title": "Data Structures: Arrays and Linked Lists",
+    "language": "en",
+    "description": "Covers linear data structures, operations, and time complexity analysis.",
+    "keywords": ["DSA", "arrays", "linked lists", "algorithms"],
+    "coverage": "Undergraduate Level",
+    "structure": "hierarchical",
+    "aggregationLevel": 2
+  },
+  "lifecycle": {
+    "version": "1.1",
+    "status": "final",
+    "contributors": [
+      {
+        "role": "author",
+        "entity": "Prof. Arjun Iyer",
+        "date": "2023-02-05"
+      }
+    ]
+  },
+  "technical": {
+    "format": "application/pdf",
+    "size": "12MB",
+    "location": "https://examplelms.org/dsa/arrays",
+    "duration": "PT2H",
+    "requirement": {
+      "type": "software",
+      "name": "PDF Reader",
+      "minimumVersion": "any"
+    }
+  },
+  "educational": {
+    "learningResourceType": "tutorial",
+    "interactivityType": "mixed",
+    "difficulty": "medium",
+    "typicalLearningTime": "PT4H",
+    "description": "Understand operations and complexity of arrays and linked lists.",
+    "language": "en"
+  },
+  "rights": {
+    "cost": "no",
+    "copyrightAndOtherRestrictions": "yes",
+    "description": "Educational Use Only"
+  },
+  "classification": {
+    "purpose": "discipline",
+    "taxonPath": {
+      "source": "ACM CCS",
+      "taxon": {
+        "id": "E.1",
+        "entry": "Data Structures"
+      }
+    }
+  }
+},
+
+{
+  "general": {
+    "identifier": "LOM-ML-003",
+    "title": "Machine Learning: Supervised Learning",
+    "language": "en",
+    "description": "Covers regression, classification, training, validation and evaluation metrics.",
+    "keywords": ["machine learning", "regression", "classification", "ai"],
+    "coverage": "Advanced Undergraduate",
+    "structure": "hierarchical",
+    "aggregationLevel": 2
+  },
+  "lifecycle": {
+    "version": "2.0",
+    "status": "final",
+    "contributors": [
+      {
+        "role": "author",
+        "entity": "Dr. Kavya Reddy",
+        "date": "2023-03-11"
+      }
+    ]
+  },
+  "technical": {
+    "format": "video/mp4",
+    "size": "1.2GB",
+    "location": "https://examplelms.org/ml/supervised",
+    "duration": "PT5H30M",
+    "requirement": {
+      "type": "software",
+      "name": "Jupyter Notebook",
+      "minimumVersion": "6.0"
+    }
+  },
+  "educational": {
+    "learningResourceType": "lecture",
+    "interactivityType": "mixed",
+    "difficulty": "hard",
+    "typicalLearningTime": "PT10H",
+    "description": "Students implement regression and classification models using Python.",
+    "language": "en"
+  },
+  "rights": {
+    "cost": "no",
+    "copyrightAndOtherRestrictions": "yes",
+    "description": "University License"
+  },
+  "classification": {
+    "purpose": "discipline",
+    "taxonPath": {
+      "source": "ACM CCS",
+      "taxon": {
+        "id": "I.2.6",
+        "entry": "Machine Learning"
+      }
+    }
+  }
+}
+]
+}

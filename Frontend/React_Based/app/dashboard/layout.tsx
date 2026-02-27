@@ -9,7 +9,7 @@ export default function DashboardLayout({
 }) {
   return (
     <SessionProvider>
-      <div className="flex h-screen overflow-hidden bg-[var(--ink-black)]">
+      <div className="flex h-screen overflow-hidden bg-black">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <DashboardHeader />

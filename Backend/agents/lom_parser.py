@@ -541,11 +541,19 @@ class LOMParser:
                 parts.append(f"\n--- {ca.filename} ---")
                 parts.append(ca.content_preview[:500])
 
-        # Raw JSON objects not classified
+        # Raw JSON objects not classified as logs/metrics
         raw_unclassified = len(doc.raw_json_objects) - len(doc.log_entries) - len(doc.metric_points)
         if raw_unclassified > 0:
-            parts.append(f"\n=== UNCLASSIFIED JSON OBJECTS ({raw_unclassified}) ===")
-            for obj in doc.raw_json_objects[:10]:
-                parts.append(f"  {json.dumps(obj, default=str)[:300]}")
+            parts.append(f"\n=== STRUCTURED DATA OBJECTS ({raw_unclassified} unclassified JSON objects) ===")
+            parts.append("These JSON objects did not match log/metric patterns. Analyze them as structured data.")
+            for i, obj in enumerate(doc.raw_json_objects[:30]):
+                parts.append(f"\n--- Object {i+1} ---")
+                parts.append(json.dumps(obj, indent=2, default=str)[:1500])
+
+        # If no log entries AND no metrics AND there are raw JSON objects, add a prominent notice
+        if not doc.log_entries and not doc.metric_points and doc.raw_json_objects:
+            parts.insert(1, "\n>>> NOTE: No log entries or metrics were detected. "
+                           "The uploaded data consists of structured JSON objects. "
+                           "Analyze the STRUCTURED DATA OBJECTS section below. <<<\n")
 
         return "\n".join(parts)

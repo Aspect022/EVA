@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import { api, type QuickModeEvent } from "./api-client"
+import { api, type QuickModeEvent, type VisualizationsData, type DashboardData, type ReportData } from "./api-client"
 
 // Pipeline phases in order
 export const PIPELINE_PHASES = [
@@ -12,8 +12,11 @@ export const PIPELINE_PHASES = [
   { id: "phase2", label: "Hypotheses", agent: "IHE" },
   { id: "fie", label: "Feature Intelligence", agent: "FIE" },
   { id: "vpe", label: "Visualizations", agent: "VPE" },
+  { id: "vpe_results", label: "Viz Results", agent: "VPE" },
   { id: "adc", label: "Dashboard", agent: "ADC" },
+  { id: "adc_results", label: "Dashboard Results", agent: "ADC" },
   { id: "rg", label: "Final Report", agent: "RG" },
+  { id: "rg_results", label: "Report View", agent: "RG" },
   { id: "complete", label: "Complete", agent: "—" },
 ] as const
 
@@ -46,8 +49,11 @@ interface SessionState {
   hypotheses: Array<Record<string, unknown>>
   features: Array<Record<string, unknown>>
   visualizations: Array<Record<string, unknown>>
+  visualizationsData: VisualizationsData | null
   dashboardStats: { panels: number; kpis: number; alerts: number; recommendations: number } | null
+  dashboardData: DashboardData | null
   report: Record<string, unknown> | null
+  reportData: ReportData | null
 }
 
 interface SessionContextType extends SessionState {
@@ -62,6 +68,7 @@ interface SessionContextType extends SessionState {
   runADC: () => Promise<void>
   runRG: () => Promise<void>
   runQuickMode: () => Promise<void>
+  advanceFromResults: () => void
   resetSession: () => void
   getNextAgentName: () => string
   setRulesMode: (mode: RulesMode) => void
@@ -92,8 +99,11 @@ const initialState: SessionState = {
   hypotheses: [],
   features: [],
   visualizations: [],
+  visualizationsData: null,
   dashboardStats: null,
+  dashboardData: null,
   report: null,
+  reportData: null,
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -241,7 +251,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const res = await api.executeVPE(state.sessionId, state.rulesMode)
       setState(prev => ({ ...prev, visualizations: res.visualizations }))
       addLog("VPE", `Created ${res.visualizations_count} visualization(s)`, "success")
-      setPhase("adc")
+
+      // Fetch full visualization data with plotly_config
+      try {
+        const vizData = await api.getVisualizations(state.sessionId)
+        setState(prev => ({ ...prev, visualizationsData: vizData }))
+      } catch { /* fallback: show results without charts */ }
+
+      setPhase("vpe_results")
     } catch (err: unknown) {
       addLog("VPE", `VPE failed: ${err instanceof Error ? err.message : String(err)}`, "error")
     } finally {
@@ -260,7 +277,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         dashboardStats: { panels: res.panels, kpis: res.kpis, alerts: res.alerts, recommendations: res.recommendations },
       }))
       addLog("ADC", `Dashboard ready: ${res.panels} panels, ${res.kpis} KPIs`, "success")
-      setPhase("rg")
+
+      // Fetch full dashboard data with content
+      try {
+        const dashData = await api.getDashboard(state.sessionId)
+        setState(prev => ({ ...prev, dashboardData: dashData }))
+      } catch { /* fallback: show summary only */ }
+
+      setPhase("adc_results")
     } catch (err: unknown) {
       addLog("ADC", `ADC failed: ${err instanceof Error ? err.message : String(err)}`, "error")
     } finally {
@@ -276,7 +300,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const res = await api.executeRG(state.sessionId, state.rulesMode)
       setState(prev => ({ ...prev, report: res.report }))
       addLog("RG", "Report generated successfully", "success")
-      setPhase("complete")
+
+      // Fetch full report data
+      try {
+        const reportData = await api.getReport(state.sessionId)
+        setState(prev => ({ ...prev, reportData }))
+      } catch { /* fallback */ }
+
+      setPhase("rg_results")
     } catch (err: unknown) {
       addLog("RG", `Report generation failed: ${err instanceof Error ? err.message : String(err)}`, "error")
     } finally {
@@ -287,6 +318,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const resetSession = useCallback(() => {
     setState(initialState)
   }, [])
+
+  const advanceFromResults = useCallback(() => {
+    if (state.currentPhase === "vpe_results") setPhase("adc")
+    else if (state.currentPhase === "adc_results") setPhase("rg")
+    else if (state.currentPhase === "rg_results") setPhase("complete")
+  }, [state.currentPhase, setPhase])
 
   const getNextAgentName = useCallback(() => {
     const idx = PIPELINE_PHASES.findIndex(p => p.id === state.currentPhase)
@@ -386,6 +423,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         runADC,
         runRG,
         runQuickMode,
+        advanceFromResults,
         resetSession,
         getNextAgentName,
         setRulesMode,

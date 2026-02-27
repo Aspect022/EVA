@@ -824,7 +824,7 @@ def start_lom_timeline(session_id: str) -> Dict[str, Any]:
     except FileNotFoundError:
         return {"status": "Blocked", "error": "LOM session not found. Run lom-profile first.", "session_id": session_id}
 
-    if not ledger.log_profile and not ledger.metric_profile:
+    if not ledger.log_profile and not ledger.metric_profile and not ledger.source_inventory:
         return {"status": "Blocked", "error": "No profile data. Run lom-profile first.", "session_id": session_id}
 
     # Reload the parsed LOM data for timeline agent

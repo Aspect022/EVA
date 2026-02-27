@@ -19,6 +19,14 @@
   --eva-gray-900: #111111;
   --eva-gray-950: #0A0A0A;
 
+  /* Dashboard legacy tokens — mapped to landing page palette */
+  --ink-black: #000000;
+  --prussian-blue: #0A0A0A;
+  --dusk-blue: #1F2937;
+  --dusty-denim: #6B7280;
+  --alabaster-grey: #F3F4F6;
+  --cta-orange: #F97316;
+
   --background: #000000;
   --foreground: #FFFFFF;
   --card: #0A0A0A;
@@ -55,6 +63,14 @@
 }
 
 .dark {
+  /* Dashboard legacy tokens — same as :root for OLED dark */
+  --ink-black: #000000;
+  --prussian-blue: #0A0A0A;
+  --dusk-blue: #1F2937;
+  --dusty-denim: #6B7280;
+  --alabaster-grey: #F3F4F6;
+  --cta-orange: #F97316;
+
   --background: #000000;
   --foreground: #FFFFFF;
   --card: #0A0A0A;
@@ -433,7 +449,7 @@ html {
 
 /* ===== ENHANCED GLASS CARD ===== */
 .glass-card-premium {
-  background: rgba(27, 38, 59, 0.6);
+  background: rgba(10, 10, 10, 0.8);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);

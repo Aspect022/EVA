@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import Image from "next/image";
 import type { ModeVariant } from "./hero-config";
 
@@ -82,6 +83,7 @@ export function HeroTextOverlay({ mode, modeIndex, scrollProgress }: HeroTextOve
                     {/* CTA Buttons */}
                     <div className="flex items-center gap-4">
                         <button
+                            onClick={() => document.getElementById("gal-trace")?.scrollIntoView({ behavior: "smooth" })}
                             className="px-6 py-3 rounded-full border text-sm font-medium tracking-wide transition-all duration-300 hover:bg-white/5"
                             style={{
                                 borderColor: "#3B82F6",
@@ -90,14 +92,15 @@ export function HeroTextOverlay({ mode, modeIndex, scrollProgress }: HeroTextOve
                         >
                             VIEW GAL TRACE
                         </button>
-                        <button
+                        <Link
+                            href="/dashboard"
                             className="px-6 py-3 rounded-full text-sm font-medium tracking-wide text-white transition-all duration-300 hover:brightness-110"
                             style={{
                                 backgroundColor: "#F97316",
                             }}
                         >
                             START SESSION
-                        </button>
+                        </Link>
                     </div>
                 </motion.div>
             </AnimatePresence>

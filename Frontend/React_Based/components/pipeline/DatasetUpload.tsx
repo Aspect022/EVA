@@ -51,10 +51,10 @@ export function DatasetUpload() {
       <div 
         className={`border-2 border-dashed rounded-2xl p-12 transition-all duration-300 flex flex-col items-center justify-center text-center ${
           isDragging 
-            ? "border-[var(--dusty-denim)] bg-[var(--prussian-blue)]/30" 
+            ? "border-white/20 bg-white/[0.04]" 
             : file 
             ? "border-green-500/40 bg-green-900/5"
-            : "border-[var(--dusk-blue)] hover:border-[var(--dusty-denim)] hover:bg-[var(--prussian-blue)]/10"
+            : "border-white/[0.06] hover:border-white/20 hover:bg-white/[0.02]"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -70,16 +70,16 @@ export function DatasetUpload() {
 
         {!file ? (
           <>
-            <div className="w-20 h-20 rounded-full bg-[var(--prussian-blue)] flex items-center justify-center mb-6 border border-[var(--dusk-blue)]">
-              <UploadCloud className="w-10 h-10 text-[var(--dusty-denim)]" />
+            <div className="w-20 h-20 rounded-full bg-[#0A0A0A] flex items-center justify-center mb-6 border border-white/[0.06]">
+              <UploadCloud className="w-10 h-10 text-white/40" />
             </div>
-            <h3 className="text-2xl font-bold text-[var(--alabaster-grey)] mb-2">Upload your dataset</h3>
-            <p className="text-[var(--dusty-denim)] max-w-md mx-auto mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">Upload your dataset</h3>
+            <p className="text-white/40 max-w-md mx-auto mb-8">
               Drag and drop your CSV file here, or click the button below to browse.
             </p>
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 rounded-lg bg-[var(--prussian-blue)] border border-[var(--dusk-blue)] text-[var(--alabaster-grey)] hover:bg-[var(--dusk-blue)]/30 transition-all focus:outline-none"
+              className="px-6 py-3 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-white hover:bg-white/[0.06] transition-all focus:outline-none"
             >
               Select CSV File
             </button>
@@ -89,8 +89,8 @@ export function DatasetUpload() {
             <div className="w-20 h-20 rounded-full bg-green-900/20 flex items-center justify-center mb-6 border border-green-500/30">
               <FileType className="w-10 h-10 text-green-400" />
             </div>
-            <h3 className="text-2xl font-bold text-[var(--alabaster-grey)] mb-2">{file.name}</h3>
-            <p className="text-[var(--dusty-denim)] mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">{file.name}</h3>
+            <p className="text-white/40 mb-8">
               {(file.size / 1024).toFixed(2)} KB
             </p>
 
@@ -103,11 +103,11 @@ export function DatasetUpload() {
                     onChange={(e) => setQuickModeEnabled(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 rounded-full bg-[var(--prussian-blue)] border border-[var(--dusk-blue)] peer-checked:bg-[var(--cta-orange)]/80 transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[var(--dusty-denim)] peer-checked:translate-x-4 peer-checked:bg-white transition-transform" />
+                  <div className="w-9 h-5 rounded-full bg-[#0A0A0A] border border-white/[0.06] peer-checked:bg-[#F97316]/80 transition-colors" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/40 peer-checked:translate-x-4 peer-checked:bg-white transition-transform" />
                 </div>
-                <Zap className="w-3.5 h-3.5 text-[var(--cta-orange)]" />
-                <span className="text-sm text-[var(--dusty-denim)] group-hover:text-[var(--alabaster-grey)] transition-colors">
+                <Zap className="w-3.5 h-3.5 text-[#F97316]" />
+                <span className="text-sm text-white/40 group-hover:text-white transition-colors">
                   Quick Mode
                 </span>
               </label>
@@ -124,7 +124,7 @@ export function DatasetUpload() {
               <button 
                 onClick={handleUpload}
                 disabled={isExecuting}
-                className="px-8 py-3 rounded-lg bg-[var(--dusk-blue)] hover:bg-[var(--dusty-denim)] text-[var(--alabaster-grey)] font-bold transition-all focus:outline-none disabled:opacity-70 flex items-center gap-2"
+                className="px-8 py-3 rounded-lg bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold transition-all focus:outline-none disabled:opacity-70 flex items-center gap-2"
               >
                 {isExecuting ? (
                   <>

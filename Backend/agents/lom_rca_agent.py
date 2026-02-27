@@ -112,11 +112,25 @@ You MUST follow these LOM RCA Rules:
 
 {rules}
 
-Your job is to generate structured root cause hypotheses with evidence chains
-based on all the observability data profiled in previous LOM_GAL sections."""
+CRITICAL INSTRUCTION — DATA TYPE AWARENESS:
+First, determine the nature of the data from the context below:
+- If the data is observability/infrastructure data (server logs, metrics, alerts), generate
+  traditional root cause hypotheses about system failures, incidents, and cascading errors.
+- If the data is structured data (e.g. JSON records, metadata, educational content, business
+  objects), generate analytical hypotheses about DATA QUALITY issues, structural problems,
+  coverage gaps, or improvement opportunities found in the data.
 
-        user_prompt = f"""Analyze the following LOM_GAL sections and generate Root Cause Analysis hypotheses.
-Build evidence chains linking log errors → metric anomalies → code locations → potential causes.
+NEVER produce hypotheses about "failed data extraction" or "pipeline malfunction". Analyze
+the ACTUAL CONTENT of the uploaded data, whatever it may be."""
+
+        user_prompt = f"""Analyze the following data analysis results and generate hypotheses.
+
+For observability data: build evidence chains linking log errors -> metric anomalies -> code
+locations -> potential root causes.
+
+For structured data: build hypotheses about data quality, completeness, consistency, and
+potential issues. Each hypothesis should identify a specific finding in the data with
+supporting evidence from the analysis.
 
 {full_context}"""
 

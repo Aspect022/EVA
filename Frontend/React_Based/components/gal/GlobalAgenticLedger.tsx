@@ -44,27 +44,27 @@ export function GlobalAgenticLedger() {
   }, [panelHeight])
 
   return (
-    <div className="border-t border-[var(--dusk-blue)] bg-[var(--ink-black)] flex flex-col transition-all duration-300">
+    <div className="border-t border-white/[0.06] bg-black flex flex-col transition-all duration-300">
       {/* Resize Handle */}
       {isExpanded && (
         <div
-          className="flex items-center justify-center py-1 cursor-row-resize hover:bg-[var(--prussian-blue)]/50 transition-colors group"
+          className="flex items-center justify-center py-1 cursor-row-resize hover:bg-white/[0.04] transition-colors group"
           onMouseDown={handleDragStart}
         >
-          <GripHorizontal className="w-4 h-4 text-[var(--dusk-blue)] group-hover:text-[var(--dusty-denim)]" />
+          <GripHorizontal className="w-4 h-4 text-white/20 group-hover:text-white/40" />
         </div>
       )}
 
       {/* Header / Tracker */}
       <div 
-        className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-[var(--prussian-blue)]/50 transition-colors border-b border-[var(--dusk-blue)]"
+        className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <Terminal className={`w-5 h-5 ${isExecuting ? "text-orange-400 animate-pulse" : "text-[var(--dusty-denim)]"}`} />
-          <span className="font-semibold text-[var(--alabaster-grey)] tracking-wide">Global Agentic Ledger</span>
+          <Terminal className={`w-5 h-5 ${isExecuting ? "text-orange-400 animate-pulse" : "text-white/40"}`} />
+          <span className="font-semibold text-white tracking-wide">Global Agentic Ledger</span>
           {logs.length > 0 && (
-            <span className="text-[10px] font-mono bg-[var(--prussian-blue)] border border-[var(--dusk-blue)] text-[var(--dusty-denim)] px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-mono bg-[#0A0A0A] border border-white/[0.06] text-white/40 px-1.5 py-0.5 rounded">
               {logs.length}
             </span>
           )}
@@ -79,10 +79,10 @@ export function GlobalAgenticLedger() {
                 <div 
                   className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold transition-all ${
                     isCompleted 
-                      ? "bg-[var(--dusk-blue)]/30 text-[var(--alabaster-grey)] border border-[var(--dusk-blue)]" 
+                      ? "bg-[#3B82F6]/20 text-white border border-[#3B82F6]/30" 
                       : isCurrent
-                      ? "bg-[var(--alabaster-grey)] text-[var(--ink-black)]"
-                      : "bg-[var(--prussian-blue)] text-[var(--dusty-denim)] border border-[var(--dusk-blue)]"
+                      ? "bg-white text-black"
+                      : "bg-[#0A0A0A] text-white/40 border border-white/[0.06]"
                   }`}
                   title={`${phase.agent}: ${phase.label}`}
                 >
@@ -91,7 +91,7 @@ export function GlobalAgenticLedger() {
                 
                 {idx < PIPELINE_PHASES.length - 2 && (
                   <div className={`h-[1px] w-4 ${
-                    isCompleted ? "bg-[var(--dusty-denim)]" : "bg-[var(--dusk-blue)]"
+                    isCompleted ? "bg-[#3B82F6]/40" : "bg-white/[0.06]"
                   }`} />
                 )}
               </div>
@@ -99,7 +99,7 @@ export function GlobalAgenticLedger() {
           })}
         </div>
 
-        <button className="p-1 rounded text-[var(--dusty-denim)] hover:text-[var(--alabaster-grey)]">
+        <button className="p-1 rounded text-white/40 hover:text-white">
           {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </button>
       </div>
@@ -111,22 +111,22 @@ export function GlobalAgenticLedger() {
         >
           <ul className="space-y-1.5">
             {logs.length === 0 && (
-              <li className="text-[var(--dusty-denim)] italic">Awaiting initialization...</li>
+              <li className="text-white/40 italic">Awaiting initialization...</li>
             )}
             
             {logs.map((log, idx) => (
-              <li key={idx} className="flex items-start gap-3 hover:bg-[var(--prussian-blue)]/30 px-2 py-1 rounded transition-colors">
-                <span className="text-[var(--dusty-denim)] opacity-60 shrink-0 select-none text-xs">[{log.timestamp}]</span>
+              <li key={idx} className="flex items-start gap-3 hover:bg-white/[0.04] px-2 py-1 rounded transition-colors">
+                <span className="text-white/20 opacity-60 shrink-0 select-none text-xs">[{log.timestamp}]</span>
                 <span className={`font-bold w-12 shrink-0 truncate text-xs uppercase ${
                   log.type === "error" ? "text-red-400" :
                   log.type === "success" ? "text-green-400" :
-                  "text-[var(--dusk-blue)]"
+                  "text-[#3B82F6]"
                 }`}>{log.agent}</span>
                 <span className={`break-words text-xs ${
                   log.type === "error" ? "text-red-400" :
                   log.type === "success" ? "text-green-400" :
                   log.type === "warn" ? "text-yellow-400" :
-                  "text-[var(--alabaster-grey)]/80"
+                  "text-white/60"
                 }`}>
                   {log.message}
                 </span>

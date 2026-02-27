@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
+import Link from "next/link";
 
 export function FinalCta() {
     return (
@@ -44,7 +45,8 @@ export function FinalCta() {
                         runs the analysis, and delivers interpretable results — autonomously.
                     </p>
 
-                    <button
+                    <Link
+                        href="/dashboard"
                         className="inline-flex items-center gap-3 px-8 py-4 rounded-full text-white font-semibold text-base tracking-wide transition-all duration-300 hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]"
                         style={{
                             background: "linear-gradient(135deg, #F97316, #EA580C)",
@@ -53,7 +55,7 @@ export function FinalCta() {
                     >
                         <Upload className="w-5 h-5" />
                         START SESSION
-                    </button>
+                    </Link>
 
                     <p
                         className="mt-6 text-xs text-white/20 tracking-wider"

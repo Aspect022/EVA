@@ -96,12 +96,24 @@ You MUST follow these LOM Report Rules:
 
 {rules}
 
-Your job is to compile all LOM_GAL analysis sections into a comprehensive,
-human-readable Root Cause Analysis report."""
+CRITICAL INSTRUCTION — DATA TYPE AWARENESS:
+Determine the nature of the analyzed data from the context below:
+- If the data involved observability/infrastructure data (server logs, metrics, incidents),
+  generate a traditional Root Cause Analysis report with incident timeline, root cause,
+  affected services, and remediation steps.
+- If the data involved structured data (JSON records, metadata, educational content, etc.),
+  generate a DATA ANALYSIS report: executive summary of findings, data quality assessment,
+  key patterns and insights, recommendations for improvement.
 
-        user_prompt = f"""Generate a complete RCA (Root Cause Analysis) report from the following analysis data.
-Include: executive summary, detailed root cause, incident timeline narrative,
+Adapt your report format to match the actual data content."""
+
+        user_prompt = f"""Generate a comprehensive analysis report from the following data.
+
+For observability data: include executive summary, root cause, incident timeline,
 affected services, impact assessment, remediation steps, and prevention recommendations.
+
+For structured data: include executive summary of findings, data structure analysis,
+quality assessment, key insights, anomalies or issues found, and recommendations.
 
 {full_context}"""
 

@@ -111,33 +111,33 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <h2 className="text-3xl font-black text-[var(--alabaster-grey)] tracking-tight">Question Builder</h2>
-          <div className="h-px flex-1 bg-gradient-to-r from-[var(--dusk-blue)] to-transparent" />
+          <h2 className="text-3xl font-black text-white tracking-tight">Question Builder</h2>
+          <div className="h-px flex-1 bg-gradient-to-r from-white/[0.06] to-transparent" />
         </div>
-        <span className="text-sm font-mono text-[var(--dusty-denim)]">
+        <span className="text-sm font-mono text-white/40">
           {currentIdx + 1} / {parsed.length}
         </span>
       </div>
 
       {/* Question Card */}
-      <div className="glass-card p-8 border border-[var(--dusk-blue)] relative overflow-hidden">
+      <div className="glass-card p-8 border border-white/[0.06] relative overflow-hidden">
         <div className="flex gap-4 mb-6">
           <div className="shrink-0">
-            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-[var(--prussian-blue)] border border-[var(--dusk-blue)] text-[var(--dusty-denim)] font-bold font-mono">
+            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-white/40 font-bold font-mono">
               Q{currentIdx + 1}
             </span>
           </div>
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded bg-[var(--prussian-blue)] border border-[var(--dusk-blue)] text-[var(--dusty-denim)]">
+              <span className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded bg-[#0A0A0A] border border-white/[0.06] text-white/40">
                 {TYPE_LABELS[current.questionType] || current.questionType}
               </span>
             </div>
-            <h3 className="text-xl font-medium text-[var(--alabaster-grey)] leading-relaxed">
+            <h3 className="text-xl font-medium text-white leading-relaxed">
               {current.text}
             </h3>
             {current.whyAsked && (
-              <p className="text-xs text-[var(--dusty-denim)] italic leading-relaxed">
+              <p className="text-xs text-white/40 italic leading-relaxed">
                 {current.whyAsked}
               </p>
             )}
@@ -157,18 +157,18 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
                   onClick={() => handleSelect(opt)}
                   className={`p-4 rounded-xl border transition-all duration-200 text-left flex items-center gap-4 ${
                     isSelected
-                      ? "bg-[var(--prussian-blue)] border-[var(--alabaster-grey)]/40"
-                      : "bg-[var(--ink-black)] border-[var(--dusk-blue)] hover:border-[var(--dusty-denim)] hover:bg-[var(--prussian-blue)]/30"
+                      ? "bg-[#3B82F6]/10 border-[#3B82F6]/30"
+                      : "bg-black border-white/[0.06] hover:border-white/20 hover:bg-white/[0.02]"
                   }`}
                 >
                   <span className={`flex items-center justify-center w-8 h-8 rounded-lg border text-sm font-bold font-mono shrink-0 transition-colors ${
                     isSelected
-                      ? "border-[var(--alabaster-grey)]/40 bg-[var(--dusk-blue)] text-[var(--alabaster-grey)]"
-                      : "border-[var(--dusk-blue)] text-[var(--dusty-denim)]"
+                      ? "border-[#3B82F6]/30 bg-[#3B82F6]/20 text-white"
+                      : "border-white/[0.06] text-white/40"
                   }`}>
                     {letter}
                   </span>
-                  <span className={`font-medium text-sm ${isSelected ? "text-[var(--alabaster-grey)]" : "text-[var(--dusty-denim)]"}`}>
+                  <span className={`font-medium text-sm ${isSelected ? "text-white" : "text-white/40"}`}>
                     {opt}
                   </span>
                 </button>
@@ -177,7 +177,7 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
           </div>
         ) : (
           <textarea
-            className="w-full bg-[var(--ink-black)] border border-[var(--dusk-blue)] rounded-xl p-4 text-[var(--alabaster-grey)] focus:outline-none focus:border-[var(--dusty-denim)] transition-all resize-y min-h-[120px] text-sm mt-4"
+            className="w-full bg-black border border-white/[0.06] rounded-xl p-4 text-white focus:outline-none focus:border-white/20 transition-all resize-y min-h-[120px] text-sm mt-4"
             placeholder="Type your answer here..."
             value={currentAnswer}
             onChange={(e) => handleTextAnswer(e.target.value)}
@@ -190,7 +190,7 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
         <button
           onClick={handlePrev}
           disabled={isFirst}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-[var(--dusty-denim)] hover:text-[var(--alabaster-grey)] transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white/40 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none"
         >
           <ChevronLeft className="w-4 h-4" />
           Previous
@@ -200,7 +200,7 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !allAnswered}
-            className="flex items-center gap-3 bg-[var(--dusk-blue)] hover:bg-[var(--dusty-denim)] text-[var(--alabaster-grey)] px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:pointer-events-none"
+            className="flex items-center gap-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:pointer-events-none"
           >
             {isSubmitting ? (
               <>
@@ -218,7 +218,7 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
           <button
             onClick={handleNext}
             disabled={!currentAnswer}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--dusk-blue)] hover:bg-[var(--dusty-denim)] text-[var(--alabaster-grey)] font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none"
           >
             Next
             <ChevronRight className="w-4 h-4" />

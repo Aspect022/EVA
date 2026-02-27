@@ -66,19 +66,36 @@ class LOMTimelineAgent:
                 if a.error_type:
                     prior_context += f"Error: {a.error_type}: {a.error_message}\n"
 
-        system_prompt = f"""You are EVA's LOM Timeline Reconstruction agent.
+        system_prompt = f"""You are EVA's LOM Analysis agent.
 You MUST respond in English only.
 
 You MUST follow these LOM Timeline Rules:
 
 {rules}
 
-Your job is to merge all observability data into a chronological timeline and detect anomalies.
-Do NOT hypothesize about root causes — describe WHAT happened and WHEN."""
+CRITICAL INSTRUCTION — DATA TYPE AWARENESS:
+First, determine the nature of the uploaded data:
+- If the data contains server logs, metrics, or observability data with timestamps and severity levels,
+  build a chronological incident timeline and detect operational anomalies.
+- If the data is structured JSON (e.g. metadata, records, configuration, educational content,
+  business objects), adapt your analysis: instead of an "incident timeline", analyze the data
+  structure, identify patterns, data quality issues, inconsistencies, or noteworthy observations
+  across the records. Treat each record as an "event" in your timeline output.
 
-        # --- Build Timeline ---
-        timeline_prompt = f"""Build a chronological event timeline from the following observability data.
-Merge log events, metric anomalies, and code errors into a single ordered narrative.
+NEVER report "no events found" as an anomaly. If the data is structured records, analyze what IS
+there, not what is missing from a log-centric perspective."""
+
+        # --- Build Timeline / Structural Analysis ---
+        timeline_prompt = f"""Analyze the following data and produce a structured analysis.
+
+If this is observability data (server logs, metrics), build a chronological event timeline
+merging log events, metric anomalies, and code errors.
+
+If this is structured data (JSON records, metadata, config files), create a structured analysis:
+- Treat each record or data object as an "event" in your timeline output
+- Use the record identifier or index as the timestamp field
+- Analyze the structure, content patterns, and relationships between records
+- Identify data quality issues, missing fields, duplicates, or inconsistencies
 
 {prior_context}
 
@@ -93,16 +110,26 @@ Merge log events, metric anomalies, and code errors into a single ordered narrat
             )
         except Exception as e:
             timeline = TimelineReconstruction(
-                overall_reasoning=f"Timeline reconstruction failed: {str(e)}"
+                overall_reasoning=f"Analysis failed: {str(e)}"
             )
 
-        # --- Detect Anomalies ---
-        anomaly_prompt = f"""Based on the following observability data and timeline analysis, detect and classify all anomalies.
+        # --- Detect Anomalies / Data Issues ---
+        anomaly_prompt = f"""Based on the following data and prior analysis, detect and classify issues.
+
+If this is observability data, detect operational anomalies (error bursts, cascading failures,
+resource exhaustion, etc.).
+
+If this is structured data (JSON records, metadata), detect DATA QUALITY issues:
+- Missing or inconsistent fields across records
+- Outlier values or unexpected patterns
+- Schema violations or structural inconsistencies
+- Coverage gaps or classification issues
+- Any noteworthy observations about the data content
 
 {prior_context}
 
-Timeline cascade pattern: {timeline.cascade_pattern if timeline else 'N/A'}
-Timeline event count: {timeline.total_events if timeline else 0}
+Prior analysis summary: {timeline.overall_reasoning if timeline else 'N/A'}
+Records analyzed: {timeline.total_events if timeline else 0}
 
 {data_summary}"""
 
