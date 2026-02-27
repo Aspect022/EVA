@@ -427,7 +427,7 @@ def check_dataset(session_id: str):
         snapshot_dir = GALManager.get_dataset_path(session_id, "dataset_snapshot")
         csvs = [f for f in snapshot_dir.iterdir() if f.suffix == ".csv"]
         if not csvs:
-            return CheckDatasetResponse(quick_mode_available=False)
+            return CheckDatasetResponse(**{"quick_mode_available": False})
 
         file_path = csvs[0]
         match = DatasetRegistry.find_match(file_path, file_path.name, file_path.stat().st_size)
