@@ -54,3 +54,56 @@ class GALManager:
     def get_dataset_path(session_id: str, stage: str = "dataset_snapshot") -> Path:
         """Returns the folder path for storing datasets at varying pipeline stages."""
         return SESSIONS_DIR / session_id / stage
+
+
+class LOMManager:
+    """
+    Handles read/write for the LOM Analysis Ledger (LOM_GAL.json).
+    Completely parallel to GALManager — does not touch GAL.json.
+    """
+
+    @staticmethod
+    def create_lom_session(session_id: str):
+        """Initialize LOM-specific directories and LOM_GAL.json within an existing session."""
+        from Backend.models.lom_schema import LOMAnalysisLedger
+
+        session_path = SESSIONS_DIR / session_id
+        session_path.mkdir(parents=True, exist_ok=True)
+
+        # LOM-specific upload directory
+        lom_uploads = session_path / "lom_uploads"
+        lom_uploads.mkdir(exist_ok=True)
+
+        lom_gal_path = session_path / "LOM_GAL.json"
+
+        ledger = LOMAnalysisLedger(session_id=session_id)
+        with open(lom_gal_path, "w", encoding="utf-8") as f:
+            f.write(ledger.model_dump_json(indent=2))
+
+        return ledger
+
+    @staticmethod
+    def read_lom_gal(session_id: str):
+        """Read the LOM Analysis Ledger from disk."""
+        from Backend.models.lom_schema import LOMAnalysisLedger
+
+        lom_gal_path = SESSIONS_DIR / session_id / "LOM_GAL.json"
+        if not lom_gal_path.exists():
+            raise FileNotFoundError(f"LOM_GAL for session {session_id} not found.")
+
+        with open(lom_gal_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        return LOMAnalysisLedger(**data)
+
+    @staticmethod
+    def write_lom_gal(session_id: str, ledger):
+        """Write the LOM Analysis Ledger to disk."""
+        lom_gal_path = SESSIONS_DIR / session_id / "LOM_GAL.json"
+        with open(lom_gal_path, "w", encoding="utf-8") as f:
+            f.write(ledger.model_dump_json(indent=2))
+
+    @staticmethod
+    def get_lom_upload_path(session_id: str) -> Path:
+        """Returns the folder path for LOM file uploads."""
+        return SESSIONS_DIR / session_id / "lom_uploads"

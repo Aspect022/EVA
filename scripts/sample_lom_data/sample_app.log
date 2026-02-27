@@ -1,0 +1,21 @@
+Nov 15 14:01:55 prod-db-01 postgres[12345]: LOG: checkpoint starting: time
+Nov 15 14:02:01 prod-db-01 postgres[12345]: LOG: checkpoint complete: wrote 1847 buffers (11.3%)
+Nov 15 14:02:03 prod-db-01 postgres[12345]: LOG: duration: 2534.112 ms statement: SELECT * FROM users WHERE id = 123
+Nov 15 14:02:15 prod-db-01 postgres[12345]: WARNING: could not send data to client: Broken pipe
+Nov 15 14:02:30 prod-db-01 postgres[12345]: LOG: duration: 4521.445 ms statement: SELECT u.*, o.* FROM users u JOIN orders o ON u.id = o.user_id WHERE u.id IN (SELECT id FROM users WHERE last_login > '2024-11-01')
+Nov 15 14:02:45 prod-db-01 postgres[12345]: WARNING: worker process: parallel worker (PID 12389) exited with exit code 1
+Nov 15 14:03:01 prod-db-01 postgres[12345]: ERROR: canceling statement due to lock timeout
+Nov 15 14:03:01 prod-db-01 postgres[12345]: DETAIL: Process 12390 waits for ShareLock on transaction 987654; blocked by process 12345.
+Nov 15 14:03:05 prod-db-01 postgres[12345]: ERROR: too many connections for role "app_user"
+Nov 15 14:03:05 prod-db-01 postgres[12345]: DETAIL: max_connections=100, current connections=100
+Nov 15 14:03:08 prod-db-01 postgres[12345]: FATAL: sorry, too many clients already
+Nov 15 14:03:10 prod-db-01 postgres[12345]: LOG: temporary file: path "base/pgsql_tmp/pgsql_tmp12345.1", size 268435456
+Nov 15 14:03:10 prod-db-01 postgres[12345]: WARNING: temporary file size 256MB exceeds temp_file_limit (128MB)
+Nov 15 14:03:12 prod-db-01 kernel: [42123.456789] Out of memory: Killed process 12345 (postgres) total-vm:8388608kB
+Nov 15 14:03:15 prod-db-01 systemd[1]: postgresql.service: Main process exited, code=killed, status=9/KILL
+Nov 15 14:03:15 prod-db-01 systemd[1]: postgresql.service: Failed with result 'signal'.
+Nov 15 14:03:20 prod-db-01 systemd[1]: postgresql.service: Scheduled restart job, restart counter is at 1.
+Nov 15 14:03:25 prod-db-01 postgres[12400]: LOG: database system was interrupted; last known up at 2024-11-15 14:02:01 UTC
+Nov 15 14:03:45 prod-db-01 postgres[12400]: LOG: database system was not properly shut down; automatic recovery in progress
+Nov 15 14:04:15 prod-db-01 postgres[12400]: LOG: redo done at 0/3A000028
+Nov 15 14:04:20 prod-db-01 postgres[12400]: LOG: database system is ready to accept connections

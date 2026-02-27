@@ -619,3 +619,316 @@ def start_phase_1(session_id: str, csv_file_name: str) -> Dict[str, Any]:
 
     result_b = start_phase_1b(session_id, csv_file_name)
     return result_b
+
+
+# ============================================================================
+# LOM PIPELINE — Logging, Monitoring & Observability (Separate from CSV)
+# ============================================================================
+
+from Backend.storage.gal_manager import LOMManager
+from Backend.agents.lom_parser import LOMParser
+from Backend.agents.lom_profiler_agent import LOMProfilerAgent
+from Backend.agents.lom_timeline_agent import LOMTimelineAgent
+from Backend.agents.lom_rca_agent import LOMRCAAgent
+from Backend.agents.lom_report_agent import LOMReportAgent
+from Backend.models.lom_schema import (
+    SourceInventory, CodeContext, CodeArtifact,
+)
+
+
+# --- LOM State ---
+
+class LOMState(TypedDict):
+    session_id: str
+    lom_ledger: Optional[Any]
+    lom_doc: Optional[Any]
+    status: str
+    error: Optional[str]
+
+
+# --- LOM Node Functions ---
+
+def lom_parse_uploads(state: LOMState) -> LOMState:
+    """Parse all uploaded LOM files into a LOMDocument."""
+    try:
+        session_id = state["session_id"]
+        upload_dir = LOMManager.get_lom_upload_path(session_id)
+        lom_doc = LOMParser.parse_directory(upload_dir)
+        ledger = LOMManager.read_lom_gal(session_id)
+
+        # Write Section 1: SourceInventory
+        inventory_data = LOMParser.build_source_inventory(lom_doc)
+        ledger.source_inventory = SourceInventory(**inventory_data)
+
+        # Write Section 4: CodeContext (from parser directly, no LLM needed)
+        if lom_doc.code_artifacts or lom_doc.config_artifacts:
+            all_artifacts = lom_doc.code_artifacts + lom_doc.config_artifacts
+            ledger.code_context = CodeContext(
+                artifacts=all_artifacts,
+            )
+
+        LOMManager.write_lom_gal(session_id, ledger)
+        return {**state, "lom_doc": lom_doc, "lom_ledger": ledger, "status": "Parsed LOM Uploads"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed LOM Parse"}
+
+
+def lom_run_profiler(state: LOMState) -> LOMState:
+    """Run the LOM Profiler agent to generate log and metric profiles."""
+    if state.get("error"):
+        return state
+    try:
+        lom_doc = state["lom_doc"]
+        ledger = state["lom_ledger"]
+
+        log_profile, metric_profile = LOMProfilerAgent.execute(lom_doc)
+
+        if log_profile:
+            ledger.log_profile = log_profile
+        if metric_profile:
+            ledger.metric_profile = metric_profile
+
+        LOMManager.write_lom_gal(state["session_id"], ledger)
+        return {**state, "lom_ledger": ledger, "status": "LOM Profile Complete"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed LOM Profile"}
+
+
+def lom_run_timeline(state: LOMState) -> LOMState:
+    """Run the LOM Timeline agent to reconstruct events and detect anomalies."""
+    if state.get("error"):
+        return state
+    try:
+        lom_doc = state["lom_doc"]
+        ledger = state["lom_ledger"]
+
+        timeline, anomalies = LOMTimelineAgent.execute(
+            lom_doc=lom_doc,
+            log_profile=ledger.log_profile,
+            metric_profile=ledger.metric_profile,
+            code_context=ledger.code_context,
+        )
+
+        if timeline:
+            ledger.timeline = timeline
+        if anomalies:
+            ledger.anomaly_findings = anomalies
+
+        LOMManager.write_lom_gal(state["session_id"], ledger)
+        return {**state, "lom_ledger": ledger, "status": "LOM Timeline Complete"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed LOM Timeline"}
+
+
+def lom_run_rca(state: LOMState) -> LOMState:
+    """Run the LOM RCA agent to generate root cause hypotheses."""
+    if state.get("error"):
+        return state
+    try:
+        ledger = state["lom_ledger"]
+        rca_hypotheses = LOMRCAAgent.execute(ledger)
+        ledger.rca_hypotheses = rca_hypotheses
+
+        LOMManager.write_lom_gal(state["session_id"], ledger)
+        return {**state, "lom_ledger": ledger, "status": "LOM RCA Complete"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed LOM RCA"}
+
+
+def lom_run_report(state: LOMState) -> LOMState:
+    """Run the LOM Report agent to generate the final RCA narrative."""
+    if state.get("error"):
+        return state
+    try:
+        ledger = state["lom_ledger"]
+        rca_report = LOMReportAgent.execute(ledger)
+        ledger.rca_report = rca_report
+
+        LOMManager.write_lom_gal(state["session_id"], ledger)
+        return {**state, "lom_ledger": ledger, "status": "LOM Report Complete"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed LOM Report"}
+
+
+# --- LOM Workflows ---
+
+# LOM Profile: parse uploads + profile logs/metrics
+lom_profile_workflow = StateGraph(LOMState)
+lom_profile_workflow.add_node("lom_parse_uploads", lom_parse_uploads)
+lom_profile_workflow.add_node("lom_run_profiler", lom_run_profiler)
+lom_profile_workflow.add_edge(START, "lom_parse_uploads")
+lom_profile_workflow.add_edge("lom_parse_uploads", "lom_run_profiler")
+lom_profile_workflow.add_edge("lom_run_profiler", END)
+lom_profile_app = lom_profile_workflow.compile()
+
+# LOM Analysis: timeline + anomaly detection + RCA
+lom_analysis_workflow = StateGraph(LOMState)
+lom_analysis_workflow.add_node("lom_run_timeline", lom_run_timeline)
+lom_analysis_workflow.add_node("lom_run_rca", lom_run_rca)
+lom_analysis_workflow.add_edge(START, "lom_run_timeline")
+lom_analysis_workflow.add_edge("lom_run_timeline", "lom_run_rca")
+lom_analysis_workflow.add_edge("lom_run_rca", END)
+lom_analysis_app = lom_analysis_workflow.compile()
+
+# LOM Report: generate final narrative
+lom_report_workflow = StateGraph(LOMState)
+lom_report_workflow.add_node("lom_run_report", lom_run_report)
+lom_report_workflow.add_edge(START, "lom_run_report")
+lom_report_workflow.add_edge("lom_run_report", END)
+lom_report_app = lom_report_workflow.compile()
+
+
+# --- LOM Public Functions ---
+
+def start_lom_profile(session_id: str) -> Dict[str, Any]:
+    """LOM Phase 1: Parse uploads + profile logs/metrics."""
+    # Ensure LOM session exists
+    try:
+        LOMManager.read_lom_gal(session_id)
+    except FileNotFoundError:
+        LOMManager.create_lom_session(session_id)
+
+    initial_state: LOMState = {
+        "session_id": session_id,
+        "lom_ledger": None,
+        "lom_doc": None,
+        "status": "Starting LOM Profile",
+        "error": None,
+    }
+
+    final_state = lom_profile_app.invoke(initial_state)
+
+    # Build response
+    ledger = final_state.get("lom_ledger")
+    source_summary = {}
+    if ledger and ledger.source_inventory:
+        source_summary = {
+            "total_files": ledger.source_inventory.total_files,
+            "total_log_entries": ledger.source_inventory.total_log_entries,
+            "total_metric_points": ledger.source_inventory.total_metric_points,
+            "total_code_artifacts": ledger.source_inventory.total_code_artifacts,
+        }
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "source_inventory": source_summary,
+    }
+
+
+def start_lom_timeline(session_id: str) -> Dict[str, Any]:
+    """LOM Phase 2: Timeline reconstruction + anomaly detection + RCA."""
+    try:
+        ledger = LOMManager.read_lom_gal(session_id)
+    except FileNotFoundError:
+        return {"status": "Blocked", "error": "LOM session not found. Run lom-profile first.", "session_id": session_id}
+
+    if not ledger.log_profile and not ledger.metric_profile:
+        return {"status": "Blocked", "error": "No profile data. Run lom-profile first.", "session_id": session_id}
+
+    # Reload the parsed LOM data for timeline agent
+    upload_dir = LOMManager.get_lom_upload_path(session_id)
+    lom_doc = LOMParser.parse_directory(upload_dir)
+
+    initial_state: LOMState = {
+        "session_id": session_id,
+        "lom_ledger": ledger,
+        "lom_doc": lom_doc,
+        "status": "Starting LOM Analysis",
+        "error": None,
+    }
+
+    final_state = lom_analysis_app.invoke(initial_state)
+
+    result_ledger = final_state.get("lom_ledger")
+    hypotheses_summary = []
+    if result_ledger and result_ledger.rca_hypotheses:
+        for h in result_ledger.rca_hypotheses.hypotheses:
+            hypotheses_summary.append({
+                "hypothesis": h.hypothesis,
+                "category": h.category,
+                "plausibility": h.plausibility,
+            })
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "timeline_events": result_ledger.timeline.total_events if result_ledger and result_ledger.timeline else 0,
+        "anomalies_found": result_ledger.anomaly_findings.total_anomalies if result_ledger and result_ledger.anomaly_findings else 0,
+        "hypotheses_count": len(hypotheses_summary),
+        "hypotheses": hypotheses_summary,
+    }
+
+
+def start_lom_rca(session_id: str) -> Dict[str, Any]:
+    """LOM standalone RCA — run only the RCA agent (if timeline already exists)."""
+    try:
+        ledger = LOMManager.read_lom_gal(session_id)
+    except FileNotFoundError:
+        return {"status": "Blocked", "error": "LOM session not found.", "session_id": session_id}
+
+    if not ledger.timeline and not ledger.anomaly_findings:
+        return {"status": "Blocked", "error": "No timeline/anomaly data. Run lom-timeline first.", "session_id": session_id}
+
+    rca_hypotheses = LOMRCAAgent.execute(ledger)
+    ledger.rca_hypotheses = rca_hypotheses
+    LOMManager.write_lom_gal(session_id, ledger)
+
+    hypotheses_summary = []
+    for h in rca_hypotheses.hypotheses:
+        hypotheses_summary.append({
+            "hypothesis": h.hypothesis,
+            "category": h.category,
+            "plausibility": h.plausibility,
+            "evidence_count": len(h.evidence_chain),
+        })
+
+    return {
+        "status": "LOM RCA Complete",
+        "error": None,
+        "session_id": session_id,
+        "primary_suspect": rca_hypotheses.primary_suspect,
+        "hypotheses_count": len(hypotheses_summary),
+        "hypotheses": hypotheses_summary,
+    }
+
+
+def start_lom_report(session_id: str) -> Dict[str, Any]:
+    """LOM Phase 3: Generate final RCA narrative report."""
+    try:
+        ledger = LOMManager.read_lom_gal(session_id)
+    except FileNotFoundError:
+        return {"status": "Blocked", "error": "LOM session not found.", "session_id": session_id}
+
+    if not ledger.rca_hypotheses:
+        return {"status": "Blocked", "error": "No RCA hypotheses. Run lom-timeline first.", "session_id": session_id}
+
+    initial_state: LOMState = {
+        "session_id": session_id,
+        "lom_ledger": ledger,
+        "lom_doc": None,
+        "status": "Starting LOM Report",
+        "error": None,
+    }
+
+    final_state = lom_report_app.invoke(initial_state)
+
+    result_ledger = final_state.get("lom_ledger")
+    report_summary = {}
+    if result_ledger and result_ledger.rca_report:
+        report_summary = {
+            "executive_summary": result_ledger.rca_report.executive_summary[:300],
+            "root_cause_preview": result_ledger.rca_report.root_cause[:200] + "..." if result_ledger.rca_report.root_cause else "",
+            "remediation_count": len(result_ledger.rca_report.remediation_steps),
+            "confidence_level": result_ledger.rca_report.confidence_level,
+        }
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "report": report_summary,
+    }
+

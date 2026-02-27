@@ -90,6 +90,21 @@ export interface RGResponse {
   report: Record<string, unknown>
 }
 
+export interface CheckDatasetResponse {
+  quick_mode_available: boolean
+  source_session_id: string | null
+  completed_phases: string[]
+}
+
+export interface QuickModeEvent {
+  type: "log" | "phase_result" | "done"
+  agent?: string
+  message?: string
+  log_type?: string
+  phase?: string
+  [key: string]: unknown
+}
+
 // --- API Functions ---
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -180,4 +195,53 @@ export const api = {
 
   getGAL: (sessionId: string) =>
     apiFetch<Record<string, unknown>>(`/session/${sessionId}/gal`),
+
+  checkDataset: (sessionId: string) =>
+    apiFetch<CheckDatasetResponse>(
+      `/session/${sessionId}/check-dataset`,
+      { method: "POST" }
+    ),
+
+  streamQuickMode: (sessionId: string, sourceSessionId: string, onEvent: (event: QuickModeEvent) => void): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      fetch(`${API_BASE}/session/${sessionId}/quick-mode?source_session_id=${encodeURIComponent(sourceSessionId)}`, {
+        method: "POST",
+      }).then(response => {
+        if (!response.ok) {
+          reject(new Error(`Quick Mode failed: ${response.statusText}`))
+          return
+        }
+        const reader = response.body?.getReader()
+        if (!reader) {
+          reject(new Error("No response body"))
+          return
+        }
+        const decoder = new TextDecoder()
+        let buffer = ""
+
+        function processChunk(): Promise<void> {
+          return reader!.read().then(({ done, value }) => {
+            if (done) {
+              resolve()
+              return
+            }
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split("\n")
+            buffer = lines.pop() || ""
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const parsed = JSON.parse(line.slice(6)) as QuickModeEvent
+                  onEvent(parsed)
+                } catch { /* skip malformed */ }
+              }
+            }
+            return processChunk()
+          })
+        }
+
+        processChunk().catch(reject)
+      }).catch(reject)
+    })
+  },
 }

@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import json
+import time
 
 import sys
 import os
@@ -48,6 +49,12 @@ if 'has_features' not in st.session_state:
     st.session_state.has_features = False
 if 'has_report' not in st.session_state:
     st.session_state.has_report = False
+if 'quick_mode_available' not in st.session_state:
+    st.session_state.quick_mode_available = False
+if 'quick_mode_enabled' not in st.session_state:
+    st.session_state.quick_mode_enabled = False
+if 'source_session_id' not in st.session_state:
+    st.session_state.source_session_id = None
 
 # --- UI Layout ---
 col1, col2 = st.columns([1, 2])
@@ -155,42 +162,126 @@ with col1:
                     resp.raise_for_status()
                     st.session_state.csv_filename = uploaded_file.name
                     st.success("File uploaded successfully!")
+
+                    # Check for Quick Mode availability
+                    try:
+                        check_resp = requests.post(f"{API_URL}/session/{st.session_state.session_id}/check-dataset", timeout=10)
+                        if check_resp.status_code == 200:
+                            check_data = check_resp.json()
+                            if check_data.get("quick_mode_available"):
+                                st.session_state.quick_mode_available = True
+                                st.session_state.source_session_id = check_data.get("source_session_id")
+                    except Exception:
+                        pass
+
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Upload failed: {str(e)}")
+
+        # Quick Mode toggle (only if dataset was seen before)
+        if st.session_state.csv_filename and st.session_state.quick_mode_available:
+            st.session_state.quick_mode_enabled = st.checkbox("⚡ Quick Mode", value=st.session_state.quick_mode_enabled, help="Use cached analysis for faster results")
 
     # --- Phase 1a: Profile + Questions ---
     if st.session_state.csv_filename and not st.session_state.questions:
         st.header("3. Profile & Understand")
         st.markdown("Runs **DPSU** (profiling) + **QBII** (question generation)")
         
-        if st.button("Start Analysis"):
-            with st.spinner("EVA is profiling your dataset and generating questions..."):
+        if st.session_state.quick_mode_enabled and st.session_state.source_session_id:
+            # --- Quick Mode: simulate the full pipeline ---
+            if st.button("Start Quick Analysis"):
+                source_sid = st.session_state.source_session_id
+                session_id = st.session_state.session_id
                 try:
-                    params = {"csv_file_name": st.session_state.csv_filename, "rules_mode": rules_mode}
                     resp = requests.post(
-                        f"{API_URL}/session/{st.session_state.session_id}/execute/phase1a",
-                        params=params,
-                        timeout=TIMEOUT,
+                        f"{API_URL}/session/{session_id}/quick-mode",
+                        params={"source_session_id": source_sid},
+                        stream=True,
+                        timeout=180,
                     )
-                    if resp.status_code != 200:
+                    resp.raise_for_status()
+
+                    status_container = st.status("Running Quick Mode...", expanded=True)
+                    current_agent = ""
+
+                    for line in resp.iter_lines(decode_unicode=True):
+                        if not line or not line.startswith("data: "):
+                            continue
                         try:
-                            err = resp.json().get("detail", resp.text)
-                        except Exception:
-                            err = resp.text
-                        st.error(f"Phase 1a Error ({resp.status_code}): {err}")
-                    else:
-                        data = resp.json()
-                        if data.get("error"):
-                            st.error(f"Phase 1a Error: {data['error']}")
-                        else:
-                            st.session_state.questions = data.get("questions", [])
-                            st.session_state.pipeline_status = data["status"]
-                            st.success("EVA has questions for you!")
+                            event = json.loads(line[6:])
+                        except json.JSONDecodeError:
+                            continue
+
+                        if event.get("type") == "log":
+                            agent = event.get("agent", "SYSTEM")
+                            msg = event.get("message", "")
+                            log_type = event.get("log_type", "info")
+                            if agent != current_agent:
+                                current_agent = agent
+                            icon = "✅" if log_type == "success" else "🔄"
+                            status_container.write(f"{icon} **{agent}**: {msg}")
+
+                        elif event.get("type") == "phase_result":
+                            phase = event.get("phase", "")
+                            if phase == "phase1a":
+                                st.session_state.questions = event.get("questions", [])
+                            elif phase == "answers":
+                                st.session_state.intent_confirmed = True
+                            elif phase == "phase1b":
+                                st.session_state.phase1b_complete = True
+                            elif phase == "phase2":
+                                st.session_state.hypotheses_generated = True
+                            elif phase == "fie":
+                                st.session_state.has_features = True
+                            elif phase == "vpe":
+                                st.session_state.has_visualizations = True
+                            elif phase == "adc":
+                                st.session_state.has_dashboard = True
+                            elif phase == "rg":
+                                st.session_state.has_report = True
+                            status_container.write(f"✅ Phase **{phase}** complete")
+
+                        elif event.get("type") == "done":
+                            status_container.update(label="Quick Mode Complete", state="complete")
+                            st.success("All phases simulated successfully!")
+                            # Set all completed flags
+                            st.session_state.questions = st.session_state.questions or [{"question": "simulated"}]
                             st.rerun()
+
                 except requests.exceptions.Timeout:
-                    st.error("Phase 1a timed out after 800 seconds.")
+                    st.error("Quick Mode timed out after 180 seconds.")
                 except Exception as e:
-                    st.error(f"Execution failed: {str(e)}")
+                    st.error(f"Quick Mode failed: {str(e)}")
+        else:
+            # --- Normal pipeline execution ---
+            if st.button("Start Analysis"):
+                with st.spinner("EVA is profiling your dataset and generating questions..."):
+                    try:
+                        params = {"csv_file_name": st.session_state.csv_filename, "rules_mode": rules_mode}
+                        resp = requests.post(
+                            f"{API_URL}/session/{st.session_state.session_id}/execute/phase1a",
+                            params=params,
+                            timeout=TIMEOUT,
+                        )
+                        if resp.status_code != 200:
+                            try:
+                                err = resp.json().get("detail", resp.text)
+                            except Exception:
+                                err = resp.text
+                            st.error(f"Phase 1a Error ({resp.status_code}): {err}")
+                        else:
+                            data = resp.json()
+                            if data.get("error"):
+                                st.error(f"Phase 1a Error: {data['error']}")
+                            else:
+                                st.session_state.questions = data.get("questions", [])
+                                st.session_state.pipeline_status = data["status"]
+                                st.success("EVA has questions for you!")
+                                st.rerun()
+                    except requests.exceptions.Timeout:
+                        st.error("Phase 1a timed out after 800 seconds.")
+                    except Exception as e:
+                        st.error(f"Execution failed: {str(e)}")
 
     # --- QBII: Answer Questions ---
     if st.session_state.questions and not st.session_state.intent_confirmed:

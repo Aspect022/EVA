@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import { api } from "./api-client"
+import { api, type QuickModeEvent } from "./api-client"
 
 // Pipeline phases in order
 export const PIPELINE_PHASES = [
@@ -35,6 +35,11 @@ interface SessionState {
   isExecuting: boolean
   rulesMode: RulesMode
   logs: LogEntry[]
+  // Quick Mode
+  quickModeAvailable: boolean
+  quickModeEnabled: boolean
+  sourceSessionId: string | null
+  completedPhases: string[]
   // Phase-specific results
   questions: Array<Record<string, unknown>>
   intent: { primary_objective?: string; selected_target?: string } | null
@@ -56,9 +61,11 @@ interface SessionContextType extends SessionState {
   runVPE: () => Promise<void>
   runADC: () => Promise<void>
   runRG: () => Promise<void>
+  runQuickMode: () => Promise<void>
   resetSession: () => void
   getNextAgentName: () => string
   setRulesMode: (mode: RulesMode) => void
+  setQuickModeEnabled: (enabled: boolean) => void
 }
 
 const SessionContext = createContext<SessionContextType | null>(null)
@@ -76,6 +83,10 @@ const initialState: SessionState = {
   isExecuting: false,
   rulesMode: "full",
   logs: [],
+  quickModeAvailable: false,
+  quickModeEnabled: false,
+  sourceSessionId: null,
+  completedPhases: [],
   questions: [],
   intent: null,
   hypotheses: [],
@@ -115,6 +126,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const upload = await api.uploadDataset(session.session_id, file)
       setState(prev => ({ ...prev, csvFileName: upload.filename }))
       addLog("SYSTEM", `File "${upload.filename}" uploaded successfully`, "success")
+
+      // Check if this dataset was previously analyzed (Quick Mode)
+      try {
+        const check = await api.checkDataset(session.session_id)
+        if (check.quick_mode_available) {
+          setState(prev => ({
+            ...prev,
+            quickModeAvailable: true,
+            sourceSessionId: check.source_session_id,
+            completedPhases: check.completed_phases,
+          }))
+          addLog("SYSTEM", "Cached analysis detected — Quick Mode available", "info")
+        }
+      } catch { /* silently skip if check fails */ }
+
       setPhase("phase1a")
     } catch (err: unknown) {
       addLog("SYSTEM", `Upload failed: ${err instanceof Error ? err.message : String(err)}`, "error")
@@ -272,6 +298,79 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, rulesMode: mode }))
   }, [])
 
+  const setQuickModeEnabled = useCallback((enabled: boolean) => {
+    setState(prev => ({ ...prev, quickModeEnabled: enabled }))
+  }, [])
+
+  // Maps phase IDs from the backend to the frontend PhaseId type
+  const PHASE_MAP: Record<string, PhaseId> = {
+    phase1a: "answers",
+    answers: "phase1b",
+    phase1b: "phase2",
+    phase2: "fie",
+    fie: "vpe",
+    vpe: "adc",
+    adc: "rg",
+    rg: "complete",
+  }
+
+  const runQuickMode = useCallback(async () => {
+    if (!state.sessionId || !state.sourceSessionId) return
+    setExecuting(true)
+    try {
+      addLog("SYSTEM", "Quick Mode activated — replaying cached analysis...", "info")
+      await api.streamQuickMode(state.sessionId, state.sourceSessionId, (event: QuickModeEvent) => {
+        if (event.type === "log") {
+          const logType = (event.log_type === "success" || event.log_type === "error" || event.log_type === "warn" || event.log_type === "info")
+            ? event.log_type as LogEntry["type"]
+            : "info"
+          addLog(event.agent || "SYSTEM", event.message || "", logType)
+        } else if (event.type === "phase_result" && event.phase) {
+          const phase = event.phase as string
+          // Update state based on which phase completed
+          if (phase === "phase1a" && event.questions) {
+            setState(prev => ({ ...prev, questions: event.questions as Array<Record<string, unknown>> }))
+          } else if (phase === "answers") {
+            setState(prev => ({
+              ...prev,
+              intent: {
+                primary_objective: event.primary_objective as string | undefined,
+                selected_target: event.selected_target as string | undefined,
+              },
+            }))
+          } else if (phase === "phase2" && event.hypotheses) {
+            setState(prev => ({ ...prev, hypotheses: event.hypotheses as Array<Record<string, unknown>> }))
+          } else if (phase === "fie" && event.features) {
+            setState(prev => ({ ...prev, features: event.features as Array<Record<string, unknown>> }))
+          } else if (phase === "vpe" && event.visualizations) {
+            setState(prev => ({ ...prev, visualizations: event.visualizations as Array<Record<string, unknown>> }))
+          } else if (phase === "adc") {
+            setState(prev => ({
+              ...prev,
+              dashboardStats: {
+                panels: (event.panels as number) || 0,
+                kpis: (event.kpis as number) || 0,
+                alerts: (event.alerts as number) || 0,
+                recommendations: (event.recommendations as number) || 0,
+              },
+            }))
+          } else if (phase === "rg" && event.report) {
+            setState(prev => ({ ...prev, report: event.report as Record<string, unknown> }))
+          }
+          // Advance to the next phase
+          const nextPhase = PHASE_MAP[phase]
+          if (nextPhase) setPhase(nextPhase)
+        } else if (event.type === "done") {
+          addLog("SYSTEM", "Quick Mode complete — all phases simulated", "success")
+        }
+      })
+    } catch (err: unknown) {
+      addLog("SYSTEM", `Quick Mode failed: ${err instanceof Error ? err.message : String(err)}`, "error")
+    } finally {
+      setExecuting(false)
+    }
+  }, [state.sessionId, state.sourceSessionId, addLog, setPhase, setExecuting])
+
   return (
     <SessionContext.Provider
       value={{
@@ -286,9 +385,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         runVPE,
         runADC,
         runRG,
+        runQuickMode,
         resetSession,
         getNextAgentName,
         setRulesMode,
+        setQuickModeEnabled,
       }}
     >
       {children}
