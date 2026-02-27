@@ -304,6 +304,25 @@ def submit_user_answers(session_id: str, answers: Dict[str, str], rules_mode: st
         )
         intent.user_confirmed = True
         gal.user_intent = intent
+        
+        # Machine Learning Activation Gate
+        if intent.primary_objective in ["PREDICT", "FORECAST", "ANOMALY_DETECT"]:
+            gal.ml_required = True
+        else:
+            gal.ml_required = False
+        
+        if gal.ml_required is True:
+            from Backend.mlrl.problem_framing import ProblemFramer
+            from Backend.mlrl.model_candidate_generator import ModelCandidateGenerator
+            from Backend.mlrl.training_evaluation import TrainingEvaluationModule
+            from Backend.mlrl.reliability_validation import ReliabilityValidationModule
+            from Backend.mlrl.prediction_monitoring import PredictionMonitoringDeployment
+            gal = ProblemFramer().run(gal)
+            gal = ModelCandidateGenerator().run(gal)
+            gal = TrainingEvaluationModule().run(gal)
+            gal = ReliabilityValidationModule().run(gal)
+            gal = PredictionMonitoringDeployment().run(gal)
+            
         GALManager.write_gal(session_id, gal)
 
         return {
