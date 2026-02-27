@@ -161,6 +161,9 @@ if has_viz:
     with st.expander("📋 Raw GAL Section 7 Data"):
         st.json(viz_plan)
 
+    st.markdown("---")
+    st.success("✅ **Visualizations complete!** You can now close this tab, return to the main app, and click **Proceed to Dashboard Maker** to continue.")
+
 else:
     st.markdown("---")
     st.info("👆 Generate visualizations to see your data come alive!")

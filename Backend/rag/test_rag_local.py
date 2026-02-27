@@ -11,7 +11,7 @@ def test_rag_logic():
     print("Testing RAG Logic...")
     
     # Test Parser
-    banking_path = "d:\\EVA_DS\\Backend\\rag\\domains\\BANKING.md"
+    banking_path = os.path.join(os.path.dirname(__file__), "domains", "BANKING.md")
     sections = parse_sections(banking_path)
     print(f"Parsed Banking Sections: {list(sections.keys())}")
     assert "SECTION_COMPLIANCE" in sections

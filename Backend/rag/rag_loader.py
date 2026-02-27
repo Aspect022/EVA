@@ -4,6 +4,8 @@ from Backend.rag.section_parser import parse_sections
 # RAG is advisory only — governance enums are authoritative
 # This layer must never override deterministic governance decisions
 
+RAG_DOMAINS_DIR = os.path.join(os.path.dirname(__file__), "domains")
+
 def load_rag_context(domain: str, risk_tier: str) -> str:
     """
     Loads relevant RAG sections based on domain and risk_tier.

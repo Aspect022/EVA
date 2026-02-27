@@ -38,6 +38,8 @@ if 'has_visualizations' not in st.session_state:
     st.session_state.has_visualizations = False
 if 'has_dashboard' not in st.session_state:
     st.session_state.has_dashboard = False
+if 'has_features' not in st.session_state:
+    st.session_state.has_features = False
 
 # --- UI Layout ---
 col1, col2 = st.columns([1, 2])
@@ -69,6 +71,7 @@ with col1:
             csv = s.get("csv_file") or "no file"
             steps = []
             if s.get("has_visualizations"): steps.append("VPE✅")
+            elif s.get("has_features"): steps.append("FIE✅")
             elif s.get("has_hypotheses"): steps.append("IHE✅")
             elif s.get("has_findings"): steps.append("EPR✅")
             elif s.get("has_intent"): steps.append("QBII✅")
@@ -89,6 +92,7 @@ with col1:
                 st.session_state.intent_confirmed = s_info.get("has_intent", False) if s_info else False
                 st.session_state.phase1b_complete = s_info.get("has_findings", False) if s_info else False
                 st.session_state.hypotheses_generated = s_info.get("has_hypotheses", False) if s_info else False
+                st.session_state.has_features = s_info.get("has_features", False) if s_info else False
                 st.session_state.has_visualizations = s_info.get("has_visualizations", False) if s_info else False
                 st.session_state.has_dashboard = s_info.get("has_dashboard", False) if s_info else False
                 # Restore questions state if identity exists but intent not confirmed
@@ -119,6 +123,7 @@ with col1:
             st.session_state.intent_confirmed = False
             st.session_state.phase1b_complete = False
             st.session_state.hypotheses_generated = False
+            st.session_state.has_features = False
             st.session_state.has_visualizations = False
             st.session_state.has_dashboard = False
             st.session_state.pipeline_status = None
@@ -287,17 +292,96 @@ with col1:
         st.header("6. ✅ Hypotheses Generated")
         st.info("Review the hypotheses in the GAL panel → then proceed to visualization.")
 
+    if st.session_state.hypotheses_generated and not st.session_state.has_features:
+        st.header("7. 🧠 Feature Intelligence Engine")
+        st.markdown("Runs **FIE** — designs domain-specific features based on RAG and hypotheses.")
+
+        if st.button("Generate Feature Engineering Plan"):
+            with st.spinner("EVA is researching domain features and creating a feature plan..."):
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/session/{st.session_state.session_id}/execute/fie",
+                        params={"rules_mode": rules_mode},
+                        timeout=800,
+                    )
+                    if resp.status_code != 200:
+                        try:
+                            err = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err = resp.text
+                        st.error(f"FIE Error ({resp.status_code}): {err}")
+                    else:
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"FIE Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.session_state.has_features = True
+                            count = data.get("features_count", 0)
+                            st.success(f"FIE generated {count} feature ideas. See the GAL for details.")
+                            st.rerun()
+                except requests.exceptions.Timeout:
+                    st.error("Phase 2b FIE timed out.")
+                except Exception as e:
+                    st.error(f"Execution failed: {str(e)}")
+
+    if st.session_state.has_features:
+        st.header("7. ✅ Features Generated")
+        st.info("Review the feature plan in the GAL panel.")
+
+        if st.button("🔄 Regenerate Feature Plan"):
+            with st.spinner("EVA is regenerating the feature plan..."):
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/session/{st.session_state.session_id}/execute/fie",
+                        params={"rules_mode": rules_mode},
+                        timeout=800,
+                    )
+                    if resp.status_code != 200:
+                        try:
+                            err = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err = resp.text
+                        st.error(f"FIE Error ({resp.status_code}): {err}")
+                    else:
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"FIE Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.success("Feature plan regenerated!")
+                            st.rerun()
+                except requests.exceptions.Timeout:
+                    st.error("FIE timed out.")
+                except Exception as e:
+                    st.error(f"Execution failed: {str(e)}")
+
         st.markdown("---")
-        st.header("7. 📊 Data Visualizer")
-        st.markdown("**Skip Feature Engineering** → Go straight to visualizing your findings and hypotheses.")
+        st.header("8. 📊 Data Visualizer")
+        st.markdown("**Visualize Findings** → Go straight to visualizing your findings and hypotheses.")
         st.markdown(f"Run the visualizer in a new terminal:")
         st.code(f"streamlit run Frontend/pages/streamlit_viz.py -- --session_id {st.session_state.session_id}", language="bash")
         viz_url = f"http://localhost:8502?session_id={st.session_state.session_id}"
         st.link_button("📊 Open Data Visualizer", viz_url, type="primary")
 
+        if not st.session_state.has_visualizations:
+            st.markdown("Once you have generated visualizations in the new tab, click below to continue:")
+            if st.button("Proceed to Dashboard Maker"):
+                try:
+                    gal_resp = requests.get(f"{API_URL}/session/{st.session_state.session_id}/gal", timeout=10)
+                    if gal_resp.status_code == 200:
+                        gal_data = gal_resp.json()
+                        if gal_data.get("visualization_plan"):
+                            st.session_state.has_visualizations = True
+                            st.rerun()
+                        else:
+                            st.warning("Visualizations not found in GAL yet. Please generate them in the Visualizer tab first.")
+                except Exception as e:
+                    st.error(f"Failed to check GAL status: {e}")
+
     if st.session_state.has_visualizations and not st.session_state.has_dashboard:
         st.markdown("---")
-        st.header("8. 📈 Dashboard Maker")
+        st.header("9. 📈 Dashboard Maker")
         st.markdown("Runs **ADC** — Analytical Dashboard Composer to generate KPIs, alerts, and recommendations.")
 
         if st.button("Generate Dashboard"):
@@ -330,7 +414,7 @@ with col1:
 
     if st.session_state.has_dashboard:
         st.markdown("---")
-        st.header("8. ✅ Dashboard Generated")
+        st.header("9. ✅ Dashboard Generated")
         st.info("Review the dashboard metrics in the GAL panel.")
         
         if st.button("🔄 Regenerate Dashboard"):
@@ -370,7 +454,7 @@ with col2:
                 resp.raise_for_status()
                 gal_data = resp.json()
                 
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Visualizations", "Dashboard"])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Features", "Visualizations", "Dashboard"])
                 
                 with tab1:
                     overview = {
@@ -470,6 +554,29 @@ with col2:
                         st.info("No Hypotheses Generated Yet")
 
                 with tab7:
+                    if gal_data.get("feature_plan"):
+                        feat_data = gal_data["feature_plan"]
+                        if feat_data.get("overall_reasoning"):
+                            st.markdown(f"**Overall Reasoning:**\n_{feat_data['overall_reasoning']}_")
+                        
+                        st.markdown("---")
+                        
+                        for i, f in enumerate(feat_data.get("features", [])):
+                            st.markdown(f"### 💡 Feature {i+1}: `{f.get('name', 'N/A')}`")
+                            st.markdown(f"**Business Meaning:** {f.get('business_meaning', 'N/A')}")
+                            st.code(f.get('formula', 'N/A'), language="text")
+                            
+                            cols = st.columns(2)
+                            cols[0].markdown(f"**Type:** {f.get('type', 'N/A')}")
+                            cols[1].markdown(f"**Expected ML Impact:** {f.get('expected_ml_impact', 'N/A')}")
+                            
+                            with st.expander("Why it Matters"):
+                                st.markdown(f"{f.get('why_it_matters', 'N/A')}")
+                            st.markdown("---")
+                    else:
+                        st.info("No Features Engineered Yet")
+
+                with tab8:
                     if gal_data.get("visualization_plan"):
                         viz_data = gal_data["visualization_plan"]
                         st.markdown(f"**Rendered:** {viz_data.get('total_rendered', 0)} | "
@@ -488,7 +595,7 @@ with col2:
                     else:
                         st.info("No Visualizations Generated Yet")
                         
-                with tab8:
+                with tab9:
                     if gal_data.get("dashboard_plan"):
                         db_data = gal_data["dashboard_plan"]
                         if db_data.get("overall_reasoning"):

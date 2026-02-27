@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from Backend.storage.gal_manager import GALManager
-from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_vpe, start_adc
+from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_fie, start_vpe, start_adc
 
 import traceback
 from typing import Optional, Dict, List
@@ -23,6 +23,7 @@ class SessionInfo(BaseModel):
     has_integrity: bool = False
     has_findings: bool = False
     has_hypotheses: bool = False
+    has_features: bool = False
     has_visualizations: bool = False
     has_dashboard: bool = False
     csv_file: Optional[str] = None
@@ -53,6 +54,7 @@ def list_sessions():
                 has_identity=gal.dataset_identity is not None,
                 has_intent=gal.user_intent is not None and gal.user_intent.user_confirmed,
                 has_visualizations=gal.visualization_plan is not None,
+                has_features=gal.feature_plan is not None,
                 has_integrity=gal.data_integrity is not None,
                 has_findings=gal.exploratory_findings is not None,
                 has_hypotheses=gal.hypotheses is not None,
@@ -199,6 +201,25 @@ def execute_phase_2(session_id: str, rules_mode: str = "full"):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# --- FIE: Feature Intelligence Engine ---
+
+class FIEResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    features_count: int = 0
+    features: List[Dict] = []
+
+@router.post("/{session_id}/execute/fie", response_model=FIEResponse)
+def execute_fie(session_id: str, rules_mode: str = "full"):
+    """Runs FIE: Feature Intelligence Engine gathering RAG domain context. Requires Phase 2 to be complete."""
+    try:
+        result = start_fie(session_id, rules_mode=rules_mode)
+        return FIEResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- VPE: Visualization Planner & Executor ---
 

@@ -10,6 +10,7 @@ from Backend.agents.qbii_agent import QBIIAgent
 from Backend.agents.dril_agent import DRILAgent
 from Backend.agents.epr_agent import EPRAgent
 from Backend.agents.ihe_agent import IHEAgent
+from Backend.agents.fie_agent import FIEAgent
 from Backend.agents.vpe_agent import VPEAgent
 from Backend.agents.adc_agent import ADCAgent
 
@@ -153,6 +154,31 @@ def run_ihe(state: EvaState) -> EvaState:
         return {**state, "error": str(e), "status": "Failed IHE"}
 
 
+def run_fie(state: EvaState) -> EvaState:
+    """Phase 2b: Generate feature engineering plan from RAG and hypotheses."""
+    if state.get("error"): return state
+    try:
+        gal = state["gal_ledger"]
+        rules_mode = state.get("rules_mode") or "full"
+
+        if not gal.hypotheses:
+            return {**state, "error": "No hypotheses found. Run Phase 2 first.", "status": "Failed FIE"}
+
+        feature_plan = FIEAgent.execute(
+            identity=gal.dataset_identity,
+            findings=gal.exploratory_findings,
+            intent=gal.user_intent,
+            integrity=gal.data_integrity,
+            hypotheses=gal.hypotheses,
+            rules_mode=rules_mode,
+        )
+        gal.feature_plan = feature_plan
+
+        GALManager.write_gal(state["session_id"], gal)
+        return {**state, "gal_ledger": gal, "status": "Awaiting Feature Review"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed FIE"}
+
 # --- Build Graphs ---
 
 # Phase 1a: DPSU + QBII question generation (stops for user input)
@@ -188,6 +214,14 @@ phase_2_workflow.add_edge("run_ihe", END)
 
 phase_2_app = phase_2_workflow.compile()
 
+# Phase 2b: FIE feature engineering plan (stops for HITL review)
+phase_2b_workflow = StateGraph(EvaState)
+phase_2b_workflow.add_node("run_fie", run_fie)
+
+phase_2b_workflow.add_edge(START, "run_fie")
+phase_2b_workflow.add_edge("run_fie", END)
+
+phase_2b_app = phase_2b_workflow.compile()
 
 def start_phase_1a(session_id: str, csv_file_name: str, rules_mode: str = "full") -> Dict[str, Any]:
     """Phase 1a: Profile dataset + generate user questions. Returns questions."""
@@ -336,6 +370,52 @@ def start_phase_2(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
         "hypotheses": hypotheses_summary,
     }
 
+
+def start_fie(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
+    """Phase 2b: Feature Intelligence Engine gathering RAG domain context. Requires Phase 2 to be complete."""
+    gal = GALManager.read_gal(session_id)
+
+    if not gal.hypotheses:
+        return {
+            "status": "Blocked",
+            "error": "Hypotheses not available. Run Phase 2 first.",
+            "session_id": session_id,
+        }
+
+    # Determine csv_file_name from current_dataset_path
+    csv_file_name = ""
+    if gal.current_dataset_path:
+        csv_file_name = os.path.basename(gal.current_dataset_path)
+
+    initial_state = {
+        "session_id": session_id,
+        "csv_file_name": csv_file_name,
+        "dataframe": None,
+        "gal_ledger": gal,
+        "status": "Starting Phase 2b",
+        "error": None,
+        "rules_mode": rules_mode,
+    }
+
+    final_state = phase_2b_app.invoke(initial_state)
+
+    # Extract features summary for the API response
+    features_summary = []
+    result_gal = final_state.get("gal_ledger")
+    if result_gal and result_gal.feature_plan and isinstance(result_gal.feature_plan.features, list):
+        for f in result_gal.feature_plan.features:
+            features_summary.append({
+                "name": getattr(f, "name", ""),
+                "business_meaning": getattr(f, "business_meaning", ""),
+            })
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "features_count": len(features_summary),
+        "features": features_summary,
+    }
 
 def start_vpe(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
     """VPE: Visualization Planner & Executor. Requires hypotheses to exist (Phase 2 complete)."""
