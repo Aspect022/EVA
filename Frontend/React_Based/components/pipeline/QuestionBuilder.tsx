@@ -76,6 +76,10 @@ export function QuestionBuilder({ questions, onSubmit }: QuestionBuilderProps) {
 
   const handleSelect = (option: string) => {
     setAnswers(prev => ({ ...prev, [current.rawQuestion]: option }))
+    // Auto-advance to next question after a brief delay for visual feedback
+    if (!isLast) {
+      setTimeout(() => setCurrentIdx(prev => prev + 1), 300)
+    }
   }
 
   const handleTextAnswer = (value: string) => {
