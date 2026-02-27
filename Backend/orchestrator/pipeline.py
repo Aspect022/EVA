@@ -13,6 +13,7 @@ from Backend.agents.ihe_agent import IHEAgent
 from Backend.agents.fie_agent import FIEAgent
 from Backend.agents.vpe_agent import VPEAgent
 from Backend.agents.adc_agent import ADCAgent
+from Backend.agents.rg_agent import RGAgent
 
 # Define state strictly mirroring the active analysis instance
 class EvaState(TypedDict):
@@ -179,6 +180,24 @@ def run_fie(state: EvaState) -> EvaState:
     except Exception as e:
         return {**state, "error": str(e), "status": "Failed FIE"}
 
+def run_rg(state: EvaState) -> EvaState:
+    """Phase 4: Generate narrative report."""
+    if state.get("error"): return state
+    try:
+        gal = state["gal_ledger"]
+        rules_mode = state.get("rules_mode") or "full"
+
+        if not gal.dashboard_plan:
+            return {**state, "error": "No dashboard plan found. Run ADC first.", "status": "Failed RG"}
+
+        report_memory = RGAgent.execute(gal, rules_mode=rules_mode)
+        gal.report_memory = report_memory
+
+        GALManager.write_gal(state["session_id"], gal)
+        return {**state, "gal_ledger": gal, "status": "Report Complete"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed RG"}
+
 # --- Build Graphs ---
 
 # Phase 1a: DPSU + QBII question generation (stops for user input)
@@ -222,6 +241,15 @@ phase_2b_workflow.add_edge(START, "run_fie")
 phase_2b_workflow.add_edge("run_fie", END)
 
 phase_2b_app = phase_2b_workflow.compile()
+
+# Phase 4: RG narrative report generation
+phase_4_workflow = StateGraph(EvaState)
+phase_4_workflow.add_node("run_rg", run_rg)
+
+phase_4_workflow.add_edge(START, "run_rg")
+phase_4_workflow.add_edge("run_rg", END)
+
+phase_4_app = phase_4_workflow.compile()
 
 def start_phase_1a(session_id: str, csv_file_name: str, rules_mode: str = "full") -> Dict[str, Any]:
     """Phase 1a: Profile dataset + generate user questions. Returns questions."""
@@ -533,6 +561,51 @@ def start_adc(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
             "session_id": session_id,
         }
 
+
+def start_rg(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
+    """Phase 4: Report Generator. Requires ADC to exist."""
+    gal = GALManager.read_gal(session_id)
+
+    if not gal.dashboard_plan:
+        return {
+            "status": "Blocked",
+            "error": "Dashboard plan not generated. Run ADC first.",
+            "session_id": session_id,
+        }
+
+    # Determine csv_file_name from current_dataset_path
+    csv_file_name = ""
+    if gal.current_dataset_path:
+        csv_file_name = os.path.basename(gal.current_dataset_path)
+
+    initial_state = {
+        "session_id": session_id,
+        "csv_file_name": csv_file_name,
+        "dataframe": None,
+        "gal_ledger": gal,
+        "status": "Starting Phase 4 (RG)",
+        "error": None,
+        "rules_mode": rules_mode,
+    }
+
+    final_state = phase_4_app.invoke(initial_state)
+
+    # Extract report summary for the API response
+    report_summary = {}
+    result_gal = final_state.get("gal_ledger")
+    if result_gal and result_gal.report_memory:
+        report_summary = {
+            "narrative_preview": result_gal.report_memory.narrative[:200] + "..." if result_gal.report_memory.narrative else "",
+            "citations_count": len(result_gal.report_memory.citations) if result_gal.report_memory.citations else 0,
+            "communicated_recommendations_count": len(result_gal.report_memory.communicated_recommendations) if result_gal.report_memory.communicated_recommendations else 0,
+        }
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "report": report_summary,
+    }
 
 # Legacy compatibility — runs full pipeline without HITL pause
 def start_phase_1(session_id: str, csv_file_name: str) -> Dict[str, Any]:

@@ -40,6 +40,8 @@ if 'has_dashboard' not in st.session_state:
     st.session_state.has_dashboard = False
 if 'has_features' not in st.session_state:
     st.session_state.has_features = False
+if 'has_report' not in st.session_state:
+    st.session_state.has_report = False
 
 # --- UI Layout ---
 col1, col2 = st.columns([1, 2])
@@ -70,7 +72,9 @@ with col1:
             sid = s["session_id"][:8]
             csv = s.get("csv_file") or "no file"
             steps = []
-            if s.get("has_visualizations"): steps.append("VPE✅")
+            if s.get("has_report"): steps.append("RG✅")
+            elif s.get("has_dashboard"): steps.append("ADC✅")
+            elif s.get("has_visualizations"): steps.append("VPE✅")
             elif s.get("has_features"): steps.append("FIE✅")
             elif s.get("has_hypotheses"): steps.append("IHE✅")
             elif s.get("has_findings"): steps.append("EPR✅")
@@ -95,6 +99,7 @@ with col1:
                 st.session_state.has_features = s_info.get("has_features", False) if s_info else False
                 st.session_state.has_visualizations = s_info.get("has_visualizations", False) if s_info else False
                 st.session_state.has_dashboard = s_info.get("has_dashboard", False) if s_info else False
+                st.session_state.has_report = s_info.get("has_report", False) if s_info else False
                 # Restore questions state if identity exists but intent not confirmed
                 if s_info and s_info.get("has_identity") and not s_info.get("has_intent"):
                     try:
@@ -126,6 +131,7 @@ with col1:
             st.session_state.has_features = False
             st.session_state.has_visualizations = False
             st.session_state.has_dashboard = False
+            st.session_state.has_report = False
             st.session_state.pipeline_status = None
             st.success(f"Session Created: {st.session_state.session_id[:8]}...")
         except Exception as e:
@@ -444,6 +450,71 @@ with col1:
                 except Exception as e:
                     st.error(f"Execution failed: {str(e)}")
 
+    if st.session_state.has_dashboard and not st.session_state.has_report:
+        st.markdown("---")
+        st.header("10. 📝 Report Generator")
+        st.markdown("Runs **RG** — Report Generator to build a structured narrative of the entire analysis.")
+
+        if st.button("Generate Narrative Report"):
+            with st.spinner("EVA is writing the final report..."):
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/session/{st.session_state.session_id}/execute/rg",
+                        params={"rules_mode": rules_mode},
+                        timeout=800,
+                    )
+                    if resp.status_code != 200:
+                        try:
+                            err = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err = resp.text
+                        st.error(f"RG Error ({resp.status_code}): {err}")
+                    else:
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"RG Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.session_state.has_report = True
+                            st.success("Report generated successfully!")
+                            st.rerun()
+                except requests.exceptions.Timeout:
+                    st.error("RG timed out.")
+                except Exception as e:
+                    st.error(f"Execution failed: {str(e)}")
+
+    if st.session_state.has_report:
+        st.markdown("---")
+        st.header("10. ✅ Report Generated")
+        st.info("Review the final narrative report in the GAL panel.")
+        
+        if st.button("🔄 Regenerate Report"):
+            with st.spinner("EVA is regenerating the narrative report..."):
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/session/{st.session_state.session_id}/execute/rg",
+                        params={"rules_mode": rules_mode},
+                        timeout=800,
+                    )
+                    if resp.status_code != 200:
+                        try:
+                            err = resp.json().get("detail", resp.text)
+                        except Exception:
+                            err = resp.text
+                        st.error(f"RG Error ({resp.status_code}): {err}")
+                    else:
+                        data = resp.json()
+                        if data.get("error"):
+                            st.error(f"RG Error: {data['error']}")
+                        else:
+                            st.session_state.pipeline_status = data["status"]
+                            st.success("Report regenerated!")
+                            st.rerun()
+                except requests.exceptions.Timeout:
+                    st.error("RG timed out.")
+                except Exception as e:
+                    st.error(f"Execution failed: {str(e)}")
+
 with col2:
     st.header("Global Analysis Ledger (GAL)")
     
@@ -454,7 +525,7 @@ with col2:
                 resp.raise_for_status()
                 gal_data = resp.json()
                 
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Features", "Visualizations", "Dashboard"])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Overview", "Identity", "Intent", "Integrity", "Findings", "Hypotheses", "Features", "Visualizations", "Dashboard", "Report"])
                 
                 with tab1:
                     overview = {
@@ -625,6 +696,36 @@ with col2:
                             st.markdown("---")
                     else:
                         st.info("No Dashboard Plan Generated Yet")
+
+                with tab10:
+                    if gal_data.get("report_memory"):
+                        rm_data = gal_data["report_memory"]
+                        st.markdown(f"**Stakeholder Calibration:** {rm_data.get('stakeholder_calibration', 'N/A')}")
+                        st.markdown(f"**Recorded at:** {rm_data.get('recorded_at', 'N/A')}")
+                        st.markdown("---")
+                        
+                        st.subheader("Narrative Report")
+                        st.markdown(rm_data.get("narrative", "No narrative generated."))
+                        
+                        st.markdown("---")
+                        st.subheader("Citations")
+                        for i, citation in enumerate(rm_data.get("citations", [])):
+                            st.markdown(f"**[{i+1}]** {citation.get('reference', 'N/A')} - {citation.get('context', 'N/A')}")
+                        
+                        st.markdown("---")
+                        st.subheader("Included Visualizations")
+                        for viz in rm_data.get("included_visualizations", []):
+                            st.markdown(f"- **{viz.get('chart_title', 'N/A')}** ({viz.get('chart_type', 'N/A')}): {viz.get('purpose_in_report', 'N/A')}")
+                            
+                        st.markdown("---")
+                        st.subheader("Communicated Recommendations")
+                        for rec in rm_data.get("communicated_recommendations", []):
+                            st.markdown(f"- **Action:** {rec.get('action', 'N/A')}")
+                            st.markdown(f"  **Target:** {rec.get('target_audience', 'N/A')}")
+                            if rec.get("expected_impact"):
+                                st.caption(f"Impact: {rec['expected_impact']}")
+                    else:
+                        st.info("No Narrative Report Generated Yet")
                         
             except Exception as e:
                 st.error("Failed to read GAL (it may not be initialized).")

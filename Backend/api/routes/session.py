@@ -5,10 +5,10 @@ from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from Backend.storage.gal_manager import GALManager
-from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_fie, start_vpe, start_adc
+from Backend.orchestrator.pipeline import start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers, start_phase_2, start_fie, start_vpe, start_adc, start_rg
 
 import traceback
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 router = APIRouter()
 
@@ -26,6 +26,7 @@ class SessionInfo(BaseModel):
     has_features: bool = False
     has_visualizations: bool = False
     has_dashboard: bool = False
+    has_report: bool = False
     csv_file: Optional[str] = None
 
 @router.get("/list", response_model=List[SessionInfo])
@@ -59,6 +60,7 @@ def list_sessions():
                 has_findings=gal.exploratory_findings is not None,
                 has_hypotheses=gal.hypotheses is not None,
                 has_dashboard=gal.dashboard_plan is not None,
+                has_report=gal.report_memory is not None,
                 csv_file=csv_file,
             ))
         except Exception:
@@ -259,6 +261,24 @@ def execute_adc(session_id: str, rules_mode: str = "full"):
     try:
         result = start_adc(session_id, rules_mode=rules_mode)
         return ADCResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- RG: Report Generator ---
+
+class RGResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    report: Dict[str, Any] = {}
+
+@router.post("/{session_id}/execute/rg", response_model=RGResponse)
+def execute_rg(session_id: str, rules_mode: str = "full"):
+    """Runs RG: Report Generator to create a structured narrative report."""
+    try:
+        result = start_rg(session_id, rules_mode=rules_mode)
+        return RGResponse(**result)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
