@@ -107,6 +107,8 @@ export function BrainCanvas({
   }, [regenerateNodes]);
 
   const spinMultiplierRef = useRef<number>(1);
+  const globalRotationRef = useRef<number>(0);
+  const spinVelocityRef = useRef<number>(0.001); // Slowly orbits normally
 
   // Speed up spin on mode change (don't regenerate nodes to keep structure identical)
   useEffect(() => {
@@ -142,6 +144,11 @@ export function BrainCanvas({
         spinMultiplierRef.current + (1 - spinMultiplierRef.current) * 0.05;
 
       time += 0.016 * activeMode.visual.pulseSpeed * spinMultiplierRef.current;
+
+      // Update the global baseline rotation
+      spinVelocityRef.current =
+        spinVelocityRef.current + (0.001 - spinVelocityRef.current) * 0.03;
+      globalRotationRef.current += spinVelocityRef.current;
 
       // Clear
       ctx.clearRect(0, 0, w, h);
@@ -179,14 +186,28 @@ export function BrainCanvas({
           Math.cos(time * node.speed * 0.7 + node.phase) * (4 + node.layer * 3);
         // Scroll-based expansion: nodes expand outward as scroll progresses
         const scrollPush = progress * (20 + node.layer * 15);
-        const angleFromCenter = Math.atan2(node.baseY - cy, node.baseX - cx);
+
+        // Original polar coordinates of the base position relative to center
+        const originalDistFromCenter = Math.sqrt(
+          Math.pow(node.baseX - cx, 2) + Math.pow(node.baseY - cy, 2),
+        );
+        const originalAngleFromCenter = Math.atan2(
+          node.baseY - cy,
+          node.baseX - cx,
+        );
+
+        // Apply global orbital rotation to the base position
+        const angleFromCenter =
+          originalAngleFromCenter + globalRotationRef.current;
+        const currentBaseX =
+          cx + Math.cos(angleFromCenter) * originalDistFromCenter;
+        const currentBaseY =
+          cy + Math.sin(angleFromCenter) * originalDistFromCenter;
 
         // Explode Push: Nodes push outward briefly when the ripple reaches them
         let explodePush = 0;
         if (rippleRef.current.active) {
-          const distFromCenter = Math.sqrt(
-            Math.pow(node.baseX - cx, 2) + Math.pow(node.baseY - cy, 2),
-          );
+          const distFromCenter = originalDistFromCenter;
           const distToRipple = Math.abs(distFromCenter - rippleSpeed);
 
           // If node is within the ripple wave (e.g. 100px thick), give it a push
@@ -196,11 +217,11 @@ export function BrainCanvas({
         }
 
         node.x =
-          node.baseX +
+          currentBaseX +
           drift +
           Math.cos(angleFromCenter) * (scrollPush + explodePush);
         node.y =
-          node.baseY +
+          currentBaseY +
           driftY +
           Math.sin(angleFromCenter) * (scrollPush + explodePush);
       }
