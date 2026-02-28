@@ -2,12 +2,14 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/lib/session-context";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DatasetUpload } from "@/components/pipeline/DatasetUpload";
 import { QuestionBuilder } from "@/components/pipeline/QuestionBuilder";
 import { VisualizationGallery } from "@/components/pipeline/VisualizationGallery";
 import { KPIDashboard } from "@/components/pipeline/KPIDashboard";
 import { ReportView } from "@/components/pipeline/ReportView";
+import { MLResultsView } from "@/components/pipeline/MLResultsView";
 import { GlobalAgenticLedger } from "@/components/gal/GlobalAgenticLedger";
 import { Play, CheckCircle2 } from "lucide-react";
 
@@ -43,6 +45,7 @@ export default function DashboardPage() {
     visualizationsData,
     dashboardData,
     reportData,
+    mlDetails,
     quickModeAvailable,
     quickModeEnabled,
     setQuickModeEnabled,
@@ -51,6 +54,7 @@ export default function DashboardPage() {
     runPhase1b,
     runPhase2,
     runFIE,
+    runMLRL,
     runVPE,
     runADC,
     runRG,
@@ -59,7 +63,18 @@ export default function DashboardPage() {
     runLomTimeline,
     runLomReport,
     advanceFromResults,
+    loadSession,
+    sessionId,
   } = useSession();
+
+  const searchParams = useSearchParams();
+  const sessionQueryId = searchParams.get("session");
+
+  useEffect(() => {
+    if (sessionQueryId && sessionQueryId !== sessionId && !isExecuting) {
+      loadSession(sessionQueryId);
+    }
+  }, [sessionQueryId, sessionId, isExecuting, loadSession]);
 
   const renderPhaseContent = () => {
     switch (currentPhase) {
@@ -157,6 +172,24 @@ export default function DashboardPage() {
             isExecuting={isExecuting}
             onRun={runFIE}
           />
+        );
+
+      case "mlrl":
+        return (
+          <PhaseAction
+            title="Model Training & Evaluation"
+            description="ML Engine will build, train, and evaluate predictive models to find the best fit."
+            agentLabel="ML Engine"
+            isExecuting={isExecuting}
+            onRun={runMLRL}
+          />
+        );
+
+      case "mlrl_results":
+        return mlDetails ? (
+          <MLResultsView mlDetails={mlDetails} onNext={advanceFromResults} />
+        ) : (
+          <LoadingState message="Loading ML results..." />
         );
 
       case "vpe":

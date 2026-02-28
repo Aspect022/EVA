@@ -160,7 +160,7 @@ class ModificationRecord(BaseModel):
 
 class DataIntegrityRecord(BaseModel):
     modifications: Optional[List[ModificationRecord] | str] = Field(default_factory=list)
-    restricted_columns: Optional[Dict[str, str] | str] = Field(default_factory=dict)
+    restricted_columns: Optional[Dict[str, Any] | str] = Field(default_factory=dict)
     validation_result: str = Field(default="pending")
     overall_reasoning: str = Field(default="")
     script_execution: Optional[ScriptExecution] = None
@@ -315,10 +315,6 @@ class VisualizationPlanRecord(BaseModel):
         return v
 
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-
-# ... existing code ...
-
 # --- GAL Section 9: Recommendations & Decisions (Dashboard Plan) ---
 class KPI(BaseModel):
     name: str = Field(default="KPI", description="The name of the metric")
@@ -447,7 +443,9 @@ class ReportMemoryRecord(BaseModel):
 
 
 # --- Master GAL Model ---
-class GlobalAnalysisLedger(BaseModel):
+from Backend.mlrl.gal_extension import GALMLExtension
+
+class GlobalAnalysisLedger(BaseModel, GALMLExtension):
     session_id: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     current_dataset_path: Optional[str] = None

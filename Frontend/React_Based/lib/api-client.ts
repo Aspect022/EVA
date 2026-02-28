@@ -15,10 +15,17 @@ export interface SessionInfo {
   has_findings: boolean
   has_hypotheses: boolean
   has_features: boolean
+  has_mlrl: boolean
   has_visualizations: boolean
   has_dashboard: boolean
   has_report: boolean
   csv_file: string | null
+  has_lom_data: boolean
+  has_lom_profile: boolean
+  has_lom_timeline: boolean
+  has_lom_rca: boolean
+  has_lom_report: boolean
+  lom_file_count: number
 }
 
 export interface UploadResponse {
@@ -62,6 +69,13 @@ export interface FIEResponse {
   error?: string | null
   features_count: number
   features: Array<Record<string, unknown>>
+}
+
+export interface MLRLResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  ml: Record<string, unknown>
 }
 
 export interface VPEResponse {
@@ -190,7 +204,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       const detail = await res.text().catch(() => res.statusText)
       throw new Error(`API ${res.status}: ${detail}`)
     }
-    return res.json()
+    const data = await res.json()
+    if (data && typeof data === "object" && "error" in data && data.error) {
+      throw new Error(data.error as string)
+    }
+    return data as T
   } finally {
     clearTimeout(timeout)
   }
@@ -241,6 +259,12 @@ export const api = {
   executeFIE: (sessionId: string, rulesMode = "full") =>
     apiFetch<FIEResponse>(
       `/session/${sessionId}/execute/fie?rules_mode=${rulesMode}`,
+      { method: "POST" }
+    ),
+
+  executeMLRL: (sessionId: string, rulesMode = "full") =>
+    apiFetch<MLRLResponse>(
+      `/session/${sessionId}/execute/mlrl?rules_mode=${rulesMode}`,
       { method: "POST" }
     ),
 

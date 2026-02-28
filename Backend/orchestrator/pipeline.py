@@ -180,6 +180,34 @@ def run_fie(state: EvaState) -> EvaState:
     except Exception as e:
         return {**state, "error": str(e), "status": "Failed FIE"}
 
+def run_mlrl(state: EvaState) -> EvaState:
+    """Phase 3: Run MLRL pipeline if required."""
+    if state.get("error"): return state
+    try:
+        gal = state["gal_ledger"]
+        
+        # Check if ML was triggered via user intent
+        if not getattr(gal, "ml_required", False):
+            return {**state, "status": "ML Not Required"}
+
+        if not gal.feature_plan:
+             return {**state, "error": "No feature plan available. Run Phase 2b first.", "status": "Failed MLRL"}
+
+        # Use the latest dataset path tracked by GAL
+        csv_path = gal.current_dataset_path
+        if csv_path and os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+        else:
+            return {**state, "error": "Dataset not found at current path.", "status": "Failed MLRL"}
+
+        # Extension method mixed into GlobalAnalysisLedger
+        gal.run_ml_pipeline()
+
+        GALManager.write_gal(state["session_id"], gal)
+        return {**state, "gal_ledger": gal, "status": "ML Complete"}
+    except Exception as e:
+        return {**state, "error": str(e), "status": "Failed MLRL"}
+
 def run_rg(state: EvaState) -> EvaState:
     """Phase 4: Generate narrative report."""
     if state.get("error"): return state
@@ -241,6 +269,15 @@ phase_2b_workflow.add_edge(START, "run_fie")
 phase_2b_workflow.add_edge("run_fie", END)
 
 phase_2b_app = phase_2b_workflow.compile()
+
+# Phase 3: Machine Learning & Reinforcement Learning (MLRL)
+phase_mlrl_workflow = StateGraph(EvaState)
+phase_mlrl_workflow.add_node("run_mlrl", run_mlrl)
+
+phase_mlrl_workflow.add_edge(START, "run_mlrl")
+phase_mlrl_workflow.add_edge("run_mlrl", END)
+
+phase_mlrl_app = phase_mlrl_workflow.compile()
 
 # Phase 4: RG narrative report generation
 phase_4_workflow = StateGraph(EvaState)
@@ -310,18 +347,6 @@ def submit_user_answers(session_id: str, answers: Dict[str, str], rules_mode: st
             gal.ml_required = True
         else:
             gal.ml_required = False
-        
-        if gal.ml_required is True:
-            from Backend.mlrl.problem_framing import ProblemFramer
-            from Backend.mlrl.model_candidate_generator import ModelCandidateGenerator
-            from Backend.mlrl.training_evaluation import TrainingEvaluationModule
-            from Backend.mlrl.reliability_validation import ReliabilityValidationModule
-            from Backend.mlrl.prediction_monitoring import PredictionMonitoringDeployment
-            gal = ProblemFramer().run(gal)
-            gal = ModelCandidateGenerator().run(gal)
-            gal = TrainingEvaluationModule().run(gal)
-            gal = ReliabilityValidationModule().run(gal)
-            gal = PredictionMonitoringDeployment().run(gal)
             
         GALManager.write_gal(session_id, gal)
 
@@ -462,6 +487,63 @@ def start_fie(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
         "session_id": session_id,
         "features_count": len(features_summary),
         "features": features_summary,
+    }
+
+def start_mlrl(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
+    """Phase 3: Machine Learning & Reinforcement Learning pipeline."""
+    gal = GALManager.read_gal(session_id)
+
+    if not gal.feature_plan:
+        return {
+            "status": "Blocked",
+            "error": "Feature plan not generated. Run Phase 2b first.",
+            "session_id": session_id,
+        }
+
+    if not getattr(gal, "ml_required", False):
+        return {
+            "status": "ML Not Required",
+            "error": None,
+            "session_id": session_id,
+        }
+
+    # Determine csv_file_name from current_dataset_path
+    csv_file_name = ""
+    if gal.current_dataset_path:
+        csv_file_name = os.path.basename(gal.current_dataset_path)
+
+    initial_state = {
+        "session_id": session_id,
+        "csv_file_name": csv_file_name,
+        "dataframe": None,
+        "gal_ledger": gal,
+        "status": "Starting MLRL",
+        "error": None,
+        "rules_mode": rules_mode,
+    }
+
+    final_state = phase_mlrl_app.invoke(initial_state)
+
+    # Extract ML summary
+    ml_summary = {}
+    result_gal = final_state.get("gal_ledger")
+    if result_gal and getattr(result_gal, "model_evaluation", None) and getattr(result_gal.model_evaluation, "selected_model", None):
+        model_name = result_gal.model_evaluation.selected_model
+        metrics = {}
+        if getattr(result_gal.model_evaluation, "results", None):
+            metrics = result_gal.model_evaluation.results.get(model_name, {})
+
+        ml_summary = {
+            "selected_model": model_name,
+            "metrics": metrics,
+            "validation_status": getattr(result_gal.model_validation, "validation_status", "UNKNOWN") if getattr(result_gal, "model_validation", None) else "UNKNOWN"
+        }
+
+    return {
+        "status": final_state["status"],
+        "error": final_state.get("error"),
+        "session_id": session_id,
+        "ml": ml_summary,
     }
 
 def start_vpe(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:

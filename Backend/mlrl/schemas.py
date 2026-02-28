@@ -20,7 +20,7 @@ class CandidateModelRecord(BaseModel):
     interpretability_level: Optional[str] = None
 
 class ModelEvaluationRecord(BaseModel):
-    results: Optional[Dict[str, Dict[str, float]]] = None
+    results: Optional[Dict[str, Dict[str, Any]]] = None
     overfitting_flags: Optional[Dict[str, bool]] = None
     selected_model: Optional[str] = None
     rejection_reasons: Optional[Dict[str, str]] = None

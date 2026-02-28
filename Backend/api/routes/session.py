@@ -12,7 +12,7 @@ from Backend.storage.gal_manager import GALManager, LOMManager
 from Backend.storage.dataset_registry import DatasetRegistry
 from Backend.orchestrator.pipeline import (
     start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers,
-    start_phase_2, start_fie, start_vpe, start_adc, start_rg,
+    start_phase_2, start_fie, start_mlrl, start_vpe, start_adc, start_rg,
     start_lom_profile, start_lom_timeline, start_lom_rca, start_lom_report,
 )
 
@@ -33,6 +33,7 @@ class SessionInfo(BaseModel):
     has_findings: bool = False
     has_hypotheses: bool = False
     has_features: bool = False
+    has_mlrl: bool = False
     has_visualizations: bool = False
     has_dashboard: bool = False
     has_report: bool = False
@@ -98,6 +99,7 @@ def list_sessions():
                 has_integrity=gal.data_integrity is not None,
                 has_findings=gal.exploratory_findings is not None,
                 has_hypotheses=gal.hypotheses is not None,
+                has_mlrl=getattr(gal, "candidate_models", None) is not None,
                 has_dashboard=gal.dashboard_plan is not None,
                 has_report=gal.report_memory is not None,
                 csv_file=csv_file,
@@ -345,6 +347,25 @@ def execute_fie(session_id: str, rules_mode: str = "full"):
         result = start_fie(session_id, rules_mode=rules_mode)
         DatasetRegistry.update_phases(session_id, ["phase1a", "answers", "phase1b", "phase2", "fie"])
         return FIEResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- MLRL: Machine Learning & Reinforcement Learning ---
+
+class MLRLResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    ml: Dict[str, Any] = {}
+
+@router.post("/{session_id}/execute/mlrl", response_model=MLRLResponse)
+def execute_mlrl(session_id: str, rules_mode: str = "full"):
+    """Runs MLRL: Machine Learning training and evaluation pipeline."""
+    try:
+        result = start_mlrl(session_id, rules_mode=rules_mode)
+        DatasetRegistry.update_phases(session_id, ["phase1a", "answers", "phase1b", "phase2", "fie", "mlrl"])
+        return MLRLResponse(**result)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

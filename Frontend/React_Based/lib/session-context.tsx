@@ -86,6 +86,7 @@ interface SessionState {
   dashboardData: DashboardData | null;
   report: Record<string, unknown> | null;
   reportData: ReportData | null;
+  mlDetails: Record<string, unknown> | null;
   // LOM Pipeline
   isLom: boolean;
   lomGalData: Record<string, unknown> | null;
@@ -99,6 +100,7 @@ interface SessionContextType extends SessionState {
   runPhase1b: () => Promise<void>;
   runPhase2: () => Promise<void>;
   runFIE: () => Promise<void>;
+  runMLRL: () => Promise<void>;
   runVPE: () => Promise<void>;
   runADC: () => Promise<void>;
   runRG: () => Promise<void>;
@@ -111,6 +113,7 @@ interface SessionContextType extends SessionState {
   getNextAgentName: () => string;
   setRulesMode: (mode: RulesMode) => void;
   setQuickModeEnabled: (enabled: boolean) => void;
+  loadSession: (sessionId: string) => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | null>(null);
@@ -142,6 +145,7 @@ const initialState: SessionState = {
   dashboardData: null,
   report: null,
   reportData: null,
+  mlDetails: null,
   isLom: false,
   lomGalData: null,
 };
@@ -521,6 +525,68 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setExecuting,
   ]);
 
+  const runMLRL = useCallback(async () => {
+    if (!state.sessionId) return;
+    const isTitanicFast =
+      state.quickModeEnabled &&
+      state.csvFileName?.toLowerCase().includes("titanic");
+    setExecuting(true);
+    try {
+      addLog(
+        "ML Engine",
+        "Training and evaluating candidate machine learning models...",
+        "info",
+      );
+      if (isTitanicFast) {
+        await sleep(2600);
+        setState((prev) => ({
+          ...prev,
+          mlDetails: {
+            selected_model: "RandomForestClassifier",
+            metrics: { Accuracy: 0.85, "F1-Score": 0.84 },
+          },
+        }));
+        addLog(
+          "ML Engine",
+          "Trained Random Forest model for titanic survival demo",
+          "success",
+        );
+      } else {
+        const res = await api.executeMLRL(state.sessionId, state.rulesMode);
+        if (res.status === "ML Not Required") {
+          addLog(
+            "ML Engine",
+            "ML not required for this analysis. Skipping.",
+            "info",
+          );
+        } else {
+          addLog(
+            "ML Engine",
+            `Selected best model: ${res.ml.selected_model}`,
+            "success",
+          );
+          setState((prev) => ({ ...prev, mlDetails: res.ml }));
+        }
+      }
+    } catch (err: unknown) {
+      addLog(
+        "ML Engine",
+        `ML training failed: ${err instanceof Error ? err.message : String(err)}`,
+        "error",
+      );
+    } finally {
+      setExecuting(false);
+    }
+  }, [
+    state.sessionId,
+    state.quickModeEnabled,
+    state.csvFileName,
+    state.rulesMode,
+    addLog,
+    setPhase,
+    setExecuting,
+  ]);
+
   const runVPE = useCallback(async () => {
     if (!state.sessionId) return;
     const isTitanicFast =
@@ -794,6 +860,147 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setState(initialState);
   }, []);
 
+  const loadSession = useCallback(
+    async (sessionId: string) => {
+      setExecuting(true);
+      try {
+        addLog("SYSTEM", `Loading session ${sessionId.slice(0, 8)}...`, "info");
+        const sessions = await api.listSessions();
+        const session = sessions.find((s) => s.session_id === sessionId);
+        if (!session) throw new Error("Session not found");
+
+        setState((prev) => ({
+          ...prev,
+          sessionId,
+          csvFileName: session.csv_file,
+        }));
+
+        // Determine phase from the session info
+        let targetPhase: PhaseId = "upload";
+
+        // Check LOM first
+        if (session.has_lom_report) targetPhase = "lom_report_results";
+        else if (session.has_lom_rca) targetPhase = "lom_report";
+        else if (session.has_lom_timeline) targetPhase = "lom_timeline";
+        else if (session.has_lom_profile || session.has_lom_data)
+          targetPhase = "lom_profile";
+        // Standard CSV path
+        else if (session.has_report) targetPhase = "rg_results";
+        else if (session.has_dashboard) targetPhase = "adc_results";
+        else if (session.has_visualizations) targetPhase = "vpe_results";
+        else if (session.has_features) targetPhase = "vpe";
+        else if (session.has_hypotheses) targetPhase = "fie";
+        else if (session.has_findings || session.has_integrity)
+          targetPhase = "phase2";
+        else if (session.has_intent) targetPhase = "phase1b";
+        else if (session.has_identity) targetPhase = "answers";
+
+        setState((prev) => ({ ...prev, currentPhase: targetPhase }));
+
+        // Load necessary data based on the phase
+        if (
+          ["rg_results", "adc_results", "vpe_results"].includes(targetPhase)
+        ) {
+          try {
+            const viz = await api.getVisualizations(sessionId);
+            setState((prev) => ({
+              ...prev,
+              visualizationsData: viz,
+              visualizations: viz.visualizations,
+            }));
+          } catch {}
+          try {
+            const dash = await api.getDashboard(sessionId);
+            setState((prev) => ({
+              ...prev,
+              dashboardData: dash,
+              dashboardStats: {
+                panels: dash.panels.length,
+                kpis: dash.kpis.length,
+                alerts: dash.alerts.length,
+                recommendations: dash.recommendations.length,
+              },
+            }));
+          } catch {}
+          try {
+            const rep = await api.getReport(sessionId);
+            setState((prev) => ({
+              ...prev,
+              reportData: rep,
+              report: rep as unknown as Record<string, unknown>,
+            }));
+          } catch {}
+          if (session.has_mlrl) {
+            try {
+              const gal = await api.getGAL(sessionId);
+              if (
+                (gal as any).candidate_models &&
+                (gal as any).candidate_models.selected_model
+              ) {
+                const model = (gal as any).candidate_models.selected_model;
+                const evalRec = (
+                  (gal as any).model_evaluation?.evaluation_results || []
+                ).find((e: any) => e.model_id === model.id);
+                setState((prev) => ({
+                  ...prev,
+                  mlDetails: {
+                    selected_model: model.model_name,
+                    metrics: evalRec?.metrics || {},
+                  },
+                }));
+              }
+            } catch {}
+          }
+        } else if (targetPhase === "lom_report_results") {
+          try {
+            const gal = await api.getLomGal(sessionId);
+            setState((prev) => ({ ...prev, lomGalData: gal }));
+            // also map report
+            const rca = gal.rca_report as any;
+            if (rca) {
+              const mappedReport: ReportData = {
+                narrative: `# Executive Summary\n${rca.executive_summary || ""}\n\n# Root Cause\n${rca.root_cause || ""}\n\n# Timeline Narrative\n${rca.incident_timeline_narrative || ""}\n\n# Impact Assessment\n${rca.impact_assessment || ""}`,
+                citations: rca.citations || [],
+                included_visualizations: [],
+                communicated_recommendations: (rca.remediation_steps || []).map(
+                  (step: any) =>
+                    `[${step.priority}] ${step.action}: ${step.estimated_impact}`,
+                ),
+                stakeholder_calibration: `Confidence: ${rca.confidence_level || "Unknown"}`,
+              };
+              setState((prev) => ({ ...prev, reportData: mappedReport }));
+            }
+          } catch {}
+        } else if (targetPhase === "answers") {
+          try {
+            const gal = await api.getGAL(sessionId);
+            if (
+              gal.user_intent &&
+              (gal.user_intent as any).generated_questions
+            ) {
+              setState((prev) => ({
+                ...prev,
+                questions: (gal.user_intent as any)
+                  .generated_questions as Array<Record<string, unknown>>,
+              }));
+            }
+          } catch {}
+        }
+
+        addLog("SYSTEM", "Session loaded successfully", "success");
+      } catch (err: unknown) {
+        addLog(
+          "SYSTEM",
+          `Failed to load session: ${err instanceof Error ? err.message : String(err)}`,
+          "error",
+        );
+      } finally {
+        setExecuting(false);
+      }
+    },
+    [addLog, setExecuting],
+  );
+
   const advanceFromResults = useCallback(() => {
     const isTitanicFast =
       state.quickModeEnabled &&
@@ -972,6 +1179,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                 ...prev,
                 features: event.features as Array<Record<string, unknown>>,
               }));
+            } else if (phase === "mlrl" && event.ml) {
+              setState((prev) => ({
+                ...prev,
+                mlDetails: event.ml as Record<string, unknown>,
+              }));
             } else if (phase === "vpe" && event.visualizations) {
               setState((prev) => ({
                 ...prev,
@@ -1110,6 +1322,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         runPhase1b,
         runPhase2,
         runFIE,
+        runMLRL,
         runVPE,
         runADC,
         runRG,
@@ -1122,6 +1335,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         getNextAgentName,
         setRulesMode,
         setQuickModeEnabled,
+        loadSession,
       }}
     >
       {children}
