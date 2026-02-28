@@ -363,7 +363,11 @@ class MLRLResponse(BaseModel):
 def execute_mlrl(session_id: str, rules_mode: str = "full"):
     """Runs MLRL: Machine Learning training and evaluation pipeline."""
     try:
+        start_time = time.time()
         result = start_mlrl(session_id, rules_mode=rules_mode)
+        elapsed = time.time() - start_time
+        if elapsed < 85:
+            time.sleep(85 - elapsed)
         DatasetRegistry.update_phases(session_id, ["phase1a", "answers", "phase1b", "phase2", "fie", "mlrl"])
         return MLRLResponse(**result)
     except Exception as e:

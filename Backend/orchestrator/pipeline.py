@@ -187,6 +187,7 @@ def run_mlrl(state: EvaState) -> EvaState:
         gal = state["gal_ledger"]
         
         # Check if ML was triggered via user intent
+        gal.ml_required = True # HACKATHON
         if not getattr(gal, "ml_required", False):
             return {**state, "status": "ML Not Required"}
 
@@ -500,6 +501,7 @@ def start_mlrl(session_id: str, rules_mode: str = "full") -> Dict[str, Any]:
             "session_id": session_id,
         }
 
+    gal.ml_required = True # HACKATHON
     if not getattr(gal, "ml_required", False):
         return {
             "status": "ML Not Required",

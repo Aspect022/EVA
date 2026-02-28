@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Quote, CheckCircle2 } from "lucide-react";
+import { FileText, Quote, CheckCircle2, Download } from "lucide-react";
 
 interface ReportViewProps {
   narrative: string;
@@ -18,168 +18,203 @@ export function ReportView({
   stakeholderCalibration,
   onNext,
 }: ReportViewProps) {
+  const handleDownloadPdf = () => {
+    const element = document.getElementById("report-content");
+    if (!element) return;
+
+    const opt = {
+      margin: 10,
+      filename: "EVA_Analysis_Report.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0A0A0A" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    if (!(window as any).html2pdf) {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+      script.onload = () => {
+        (window as any).html2pdf().from(element).set(opt).save();
+      };
+      document.body.appendChild(script);
+    } else {
+      (window as any).html2pdf().from(element).set(opt).save();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="max-w-4xl mx-auto mt-8 space-y-8 px-4 pb-8"
     >
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-3"
-      >
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-xs font-mono text-[#F97316] uppercase tracking-[0.15em]">
-          <FileText className="w-3.5 h-3.5" />
-          RG Report
-        </div>
-        <h2 className="text-2xl font-bold text-white">Analysis Report</h2>
-        <p className="text-white/40 text-sm">
-          Calibrated for:{" "}
-          <span className="text-white/60">
-            {stakeholderCalibration || "General"}
-          </span>
-        </p>
-      </motion.div>
-
-      {/* Narrative */}
-      {narrative ? (
+      <div id="report-content" className="space-y-8 bg-[#0A0A0A]">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-8 space-y-4"
+          className="text-center space-y-3"
         >
-          <div className="prose prose-invert prose-sm max-w-none">
-            {narrative.split("\n").map((paragraph, i) => {
-              if (!paragraph.trim()) return null;
-              if (paragraph.startsWith("#")) {
-                const level = paragraph.match(/^#+/)?.[0].length || 1;
-                const text = paragraph.replace(/^#+\s*/, "");
-                if (level === 1)
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-xs font-mono text-[#F97316] uppercase tracking-[0.15em]">
+            <FileText className="w-3.5 h-3.5" />
+            RG Report
+          </div>
+          <h2 className="text-2xl font-bold text-white">Analysis Report</h2>
+          <p className="text-white/40 text-sm">
+            Calibrated for:{" "}
+            <span className="text-white/60">
+              {stakeholderCalibration || "General"}
+            </span>
+          </p>
+        </motion.div>
+
+        {/* Narrative */}
+        {narrative ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-8 space-y-4"
+          >
+            <div className="prose prose-invert prose-sm max-w-none text-white">
+              {narrative.split("\n").map((paragraph, i) => {
+                if (!paragraph.trim()) return null;
+                if (paragraph.startsWith("#")) {
+                  const level = paragraph.match(/^#+/)?.[0].length || 1;
+                  const text = paragraph.replace(/^#+\s*/, "");
+                  if (level === 1)
+                    return (
+                      <h2
+                        key={i}
+                        className="text-xl font-bold text-white mt-6 mb-3"
+                      >
+                        {text}
+                      </h2>
+                    );
+                  if (level === 2)
+                    return (
+                      <h3
+                        key={i}
+                        className="text-lg font-semibold text-white/90 mt-5 mb-2"
+                      >
+                        {text}
+                      </h3>
+                    );
                   return (
-                    <h2
+                    <h4
                       key={i}
-                      className="text-xl font-bold text-white mt-6 mb-3"
+                      className="text-base font-medium text-white/80 mt-4 mb-2"
                     >
                       {text}
-                    </h2>
+                    </h4>
                   );
-                if (level === 2)
+                }
+                if (paragraph.startsWith("- ") || paragraph.startsWith("* ")) {
                   return (
-                    <h3
-                      key={i}
-                      className="text-lg font-semibold text-white/90 mt-5 mb-2"
-                    >
-                      {text}
-                    </h3>
+                    <div key={i} className="flex items-start gap-2 pl-2">
+                      <span className="text-[#F97316] mt-1.5 text-xs">•</span>
+                      <p className="text-sm text-white/70 leading-relaxed">
+                        {paragraph.slice(2)}
+                      </p>
+                    </div>
                   );
+                }
                 return (
-                  <h4
-                    key={i}
-                    className="text-base font-medium text-white/80 mt-4 mb-2"
-                  >
-                    {text}
-                  </h4>
+                  <p key={i} className="text-sm text-white/70 leading-relaxed">
+                    {paragraph}
+                  </p>
                 );
-              }
-              if (paragraph.startsWith("- ") || paragraph.startsWith("* ")) {
-                return (
-                  <div key={i} className="flex items-start gap-2 pl-2">
-                    <span className="text-[#F97316] mt-1.5 text-xs">•</span>
-                    <p className="text-sm text-white/70 leading-relaxed">
-                      {paragraph.slice(2)}
-                    </p>
-                  </div>
-                );
-              }
-              return (
-                <p key={i} className="text-sm text-white/70 leading-relaxed">
-                  {paragraph}
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16 space-y-3"
+          >
+            <FileText className="w-12 h-12 text-white/20 mx-auto" />
+            <p className="text-white/40">No report generated yet.</p>
+          </motion.div>
+        )}
+
+        {/* Citations */}
+        {citations.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-5 space-y-3"
+          >
+            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider flex items-center gap-2">
+              <Quote className="w-4 h-4 text-blue-400" />
+              Citations ({citations.length})
+            </h3>
+            <div className="space-y-1">
+              {citations.map((citation, i) => (
+                <p
+                  key={i}
+                  className="text-xs text-white/40 pl-4 border-l-2 border-white/[0.06] py-1"
+                >
+                  {citation}
                 </p>
-              );
-            })}
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-16 space-y-3"
-        >
-          <FileText className="w-12 h-12 text-white/20 mx-auto" />
-          <p className="text-white/40">No report generated yet.</p>
-        </motion.div>
-      )}
+              ))}
+            </div>
+          </motion.div>
+        )}
 
-      {/* Citations */}
-      {citations.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-5 space-y-3"
-        >
-          <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider flex items-center gap-2">
-            <Quote className="w-4 h-4 text-blue-400" />
-            Citations ({citations.length})
-          </h3>
-          <div className="space-y-1">
-            {citations.map((citation, i) => (
-              <p
-                key={i}
-                className="text-xs text-white/40 pl-4 border-l-2 border-white/[0.06] py-1"
-              >
-                {citation}
-              </p>
-            ))}
-          </div>
-        </motion.div>
-      )}
+        {/* Communicated Recommendations */}
+        {communicatedRecommendations.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-5 space-y-3"
+          >
+            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              Communicated Recommendations ({communicatedRecommendations.length}
+              )
+            </h3>
+            <div className="space-y-1">
+              {communicatedRecommendations.map((rec, i) => (
+                <p
+                  key={i}
+                  className="text-xs text-white/50 flex items-start gap-2"
+                >
+                  <span className="text-emerald-400/60 mt-0.5">✓</span>
+                  {rec}
+                </p>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
 
-      {/* Communicated Recommendations */}
-      {communicatedRecommendations.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-5 space-y-3"
+      {/* Action Buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="flex justify-center mt-12 mb-4 gap-4"
+      >
+        <button
+          onClick={handleDownloadPdf}
+          className="flex items-center gap-2 px-6 py-4 rounded-xl bg-[#2A2A2A] hover:bg-[#3A3A3A] border border-white/[0.06] text-white font-medium transition-all"
         >
-          <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            Communicated Recommendations ({communicatedRecommendations.length})
-          </h3>
-          <div className="space-y-1">
-            {communicatedRecommendations.map((rec, i) => (
-              <p
-                key={i}
-                className="text-xs text-white/50 flex items-start gap-2"
-              >
-                <span className="text-emerald-400/60 mt-0.5">✓</span>
-                {rec}
-              </p>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Next Button */}
-      {onNext && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="flex justify-center mt-12 mb-4"
-        >
+          <Download className="w-5 h-5" />
+          Download PDF
+        </button>
+        {onNext && (
           <button
             onClick={onNext}
             className="flex items-center gap-2 px-8 py-4 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-bold transition-all shadow-lg shadow-[#F97316]/20"
           >
             Complete Pipeline
           </button>
-        </motion.div>
-      )}
+        )}
+      </motion.div>
     </motion.div>
   );
 }
