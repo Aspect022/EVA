@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from Backend.api.routes import session
+from Backend.api.routes import session, chat
 
 app = FastAPI(
     title="EVA Analytical Operating System",
@@ -19,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(session.router, prefix="/session", tags=["Session"])
+app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 
 @app.get("/")
 def health_check():

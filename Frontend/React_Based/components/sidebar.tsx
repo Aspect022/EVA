@@ -1,25 +1,29 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
   Workflow,
   FolderOpen,
   Settings,
-} from "lucide-react"
-import { useSession } from "@/lib/session-context"
+  MessageSquare,
+} from "lucide-react";
+import { useSession } from "@/lib/session-context";
 
 const navItems = [
   { name: "Pipeline", href: "/dashboard", icon: Workflow },
   { name: "Sessions", href: "/dashboard/sessions", icon: FolderOpen },
+  { name: "Chat Assistant", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
-]
+];
 
-const MONO_FONT = { fontFamily: "var(--font-fira-code, 'Fira Code', monospace)" }
+const MONO_FONT = {
+  fontFamily: "var(--font-fira-code, 'Fira Code', monospace)",
+};
 
 const sidebarVariants = {
   hidden: { x: -20, opacity: 0 },
@@ -34,7 +38,7 @@ const sidebarVariants = {
       delayChildren: 0.2,
     },
   },
-}
+};
 
 const navItemVariants = {
   hidden: { x: -16, opacity: 0 },
@@ -43,12 +47,12 @@ const navItemVariants = {
     opacity: 1,
     transition: { type: "spring" as const, stiffness: 120, damping: 16 },
   },
-}
+};
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const pathname = usePathname()
-  const { sessionId } = useSession()
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
+  const { sessionId } = useSession();
 
   return (
     <motion.aside
@@ -71,7 +75,10 @@ export function Sidebar() {
               transition={{ duration: 0.2 }}
             >
               <Link href="/" className="flex items-center gap-2">
-                <span className="text-2xl font-black text-white tracking-[0.1em]" style={MONO_FONT}>
+                <span
+                  className="text-2xl font-black text-white tracking-[0.1em]"
+                  style={MONO_FONT}
+                >
                   EVA
                 </span>
               </Link>
@@ -86,7 +93,10 @@ export function Sidebar() {
               className="mx-auto"
             >
               <Link href="/">
-                <span className="text-xl font-black text-white tracking-[0.1em]" style={MONO_FONT}>
+                <span
+                  className="text-xl font-black text-white tracking-[0.1em]"
+                  style={MONO_FONT}
+                >
                   E
                 </span>
               </Link>
@@ -114,8 +124,8 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
         {navItems.map((item, index) => {
-          const isActive = pathname === item.href
-          const Icon = item.icon
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
 
           return (
             <motion.div key={item.name} variants={navItemVariants}>
@@ -165,7 +175,7 @@ export function Sidebar() {
                 </AnimatePresence>
               </Link>
             </motion.div>
-          )
+          );
         })}
       </nav>
 
@@ -181,12 +191,18 @@ export function Sidebar() {
           >
             {sessionId ? (
               <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-[0.15em] text-white/30 font-mono" style={MONO_FONT}>
+                <span
+                  className="text-xs uppercase tracking-[0.15em] text-white/30 font-mono"
+                  style={MONO_FONT}
+                >
                   Active Session
                 </span>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-breathe" />
-                  <span className="text-sm font-mono text-white truncate" style={MONO_FONT}>
+                  <span
+                    className="text-sm font-mono text-white truncate"
+                    style={MONO_FONT}
+                  >
                     {sessionId.slice(0, 12)}...
                   </span>
                 </div>
@@ -197,9 +213,7 @@ export function Sidebar() {
                   U
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-white">
-                    User
-                  </span>
+                  <span className="text-sm font-medium text-white">User</span>
                   <span className="text-xs text-white/30">
                     Local Environment
                   </span>
@@ -210,5 +224,5 @@ export function Sidebar() {
         )}
       </AnimatePresence>
     </motion.aside>
-  )
+  );
 }
