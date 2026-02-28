@@ -410,6 +410,14 @@ function DashboardContent() {
   );
 }
 
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<LoadingState message="Loading dashboard..." />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
 function PhaseAction({
   title,
   description,
