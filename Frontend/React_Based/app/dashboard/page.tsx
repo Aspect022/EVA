@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/lib/session-context";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DatasetUpload } from "@/components/pipeline/DatasetUpload";
 import { QuestionBuilder } from "@/components/pipeline/QuestionBuilder";
@@ -36,7 +36,7 @@ const phaseTransition = {
   },
 };
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
   const {
     currentPhase,

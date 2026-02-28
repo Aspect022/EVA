@@ -12,6 +12,7 @@ import {
   Settings,
   MessageSquare,
   GitBranch,
+  Archive,
 } from "lucide-react";
 import { useSession } from "@/lib/session-context";
 
@@ -19,6 +20,7 @@ const navItems = [
   { name: "Pipeline", href: "/dashboard", icon: Workflow },
   { name: "Sessions", href: "/dashboard/sessions", icon: FolderOpen },
   { name: "Chat Assistant", href: "/dashboard/chat", icon: MessageSquare },
+  { name: "Records", href: "/dashboard/records", icon: Archive },
 ];
 
 const bottomNavItems = [
