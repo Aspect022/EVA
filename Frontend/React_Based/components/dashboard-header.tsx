@@ -1,13 +1,20 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Bot } from "lucide-react"
-import { useSession, PIPELINE_PHASES } from "@/lib/session-context"
+import { motion } from "framer-motion";
+import { Bot } from "lucide-react";
+import { useSession, PIPELINE_PHASES } from "@/lib/session-context";
 
 export function DashboardHeader() {
-  const { currentPhase, isExecuting, getNextAgentName, rulesMode, setRulesMode } = useSession()
-  const agentName = getNextAgentName()
-  const phaseLabel = PIPELINE_PHASES.find(p => p.id === currentPhase)?.label ?? "—"
+  const {
+    currentPhase,
+    isExecuting,
+    getNextAgentName,
+    rulesMode,
+    setRulesMode,
+  } = useSession();
+  const agentName = getNextAgentName();
+  const phaseLabel =
+    PIPELINE_PHASES.find((p) => p.id === currentPhase)?.label ?? "—";
 
   return (
     <motion.header
@@ -24,7 +31,9 @@ export function DashboardHeader() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
           className="text-xs font-mono text-white/40 bg-[#0A0A0A] px-2.5 py-1 rounded-lg border border-white/[0.06]"
-          style={{ fontFamily: "var(--font-fira-code, 'Fira Code', monospace)" }}
+          style={{
+            fontFamily: "var(--font-fira-code, 'Fira Code', monospace)",
+          }}
         >
           {phaseLabel}
         </motion.span>
@@ -36,6 +45,7 @@ export function DashboardHeader() {
           {(["lite", "full"] as const).map((mode) => (
             <motion.button
               key={mode}
+              suppressHydrationWarning
               onClick={() => setRulesMode(mode)}
               whileHover={{ backgroundColor: "rgba(65, 90, 119, 0.3)" }}
               whileTap={{ scale: 0.95 }}
@@ -44,7 +54,9 @@ export function DashboardHeader() {
                   ? "bg-white/[0.08] text-white"
                   : "text-white/40 hover:text-white/80"
               }`}
-              style={{ fontFamily: "var(--font-fira-code, 'Fira Code', monospace)" }}
+              style={{
+                fontFamily: "var(--font-fira-code, 'Fira Code', monospace)",
+              }}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </motion.button>
@@ -72,8 +84,11 @@ export function DashboardHeader() {
             />
           </motion.div>
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-white/30 font-mono"
-              style={{ fontFamily: "var(--font-fira-code, 'Fira Code', monospace)" }}
+            <span
+              className="text-[10px] uppercase tracking-[0.15em] text-white/30 font-mono"
+              style={{
+                fontFamily: "var(--font-fira-code, 'Fira Code', monospace)",
+              }}
             >
               Active Agent
             </span>
@@ -90,5 +105,5 @@ export function DashboardHeader() {
         </motion.div>
       </div>
     </motion.header>
-  )
+  );
 }

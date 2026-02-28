@@ -96,6 +96,7 @@ export function DatasetUpload() {
               button below to browse.
             </p>
             <button
+              suppressHydrationWarning
               onClick={() => fileInputRef.current?.click()}
               className="px-6 py-3 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-white hover:bg-white/[0.06] transition-all focus:outline-none"
             >
@@ -114,6 +115,7 @@ export function DatasetUpload() {
 
             <div className="flex gap-4">
               <button
+                suppressHydrationWarning
                 onClick={() => setFile(null)}
                 className="px-6 py-3 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-900/20 transition-all focus:outline-none"
                 disabled={isExecuting}
@@ -121,6 +123,7 @@ export function DatasetUpload() {
                 Remove
               </button>
               <button
+                suppressHydrationWarning
                 onClick={handleUpload}
                 disabled={isExecuting}
                 className="px-8 py-3 rounded-lg bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold transition-all focus:outline-none disabled:opacity-70 flex items-center gap-2"
