@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Settings,
   MessageSquare,
+  GitBranch,
 } from "lucide-react";
 import { useSession } from "@/lib/session-context";
 
@@ -18,6 +19,14 @@ const navItems = [
   { name: "Pipeline", href: "/dashboard", icon: Workflow },
   { name: "Sessions", href: "/dashboard/sessions", icon: FolderOpen },
   { name: "Chat Assistant", href: "/dashboard/chat", icon: MessageSquare },
+];
+
+const bottomNavItems = [
+  {
+    name: "Control Center",
+    href: "/dashboard/control-center",
+    icon: GitBranch,
+  },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -178,6 +187,62 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-3 pb-6 space-y-1.5 border-t border-white/[0.06] pt-6">
+        {bottomNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+
+          return (
+            <motion.div key={item.name} variants={navItemVariants}>
+              <Link
+                href={item.href}
+                className={`relative flex items-center ${
+                  isCollapsed ? "justify-center" : "justify-start"
+                } gap-3 px-3 py-3 rounded-xl transition-all duration-200 group cursor-pointer ${
+                  isActive
+                    ? "bg-[#F97316]/10 text-white"
+                    : "text-white/40 hover:bg-white/[0.04] hover:text-white/80"
+                }`}
+                title={isCollapsed ? item.name : undefined}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-[#F97316]"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: isActive ? 0 : 5 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                >
+                  <Icon
+                    className={`w-5 h-5 transition-colors ${
+                      isActive ? "text-[#F97316]" : ""
+                    }`}
+                  />
+                </motion.div>
+
+                <AnimatePresence>
+                  {!isCollapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="font-medium whitespace-nowrap overflow-hidden"
+                    >
+                      {item.name}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Session info footer */}
       <AnimatePresence>
