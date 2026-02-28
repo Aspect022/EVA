@@ -1,7 +1,7 @@
 "use client";
 
 import { EvaHero } from "@/components/eva-hero/eva-hero";
-import { AgentOrchestration } from "@/components/sections/agent-orchestration";
+import { AgentShowcase } from "@/components/sections/agent-showcase";
 import { GalTrace } from "@/components/sections/gal-trace";
 import { SecurityPrivacy } from "@/components/sections/security-privacy";
 import { FinalCta } from "@/components/sections/final-cta";
@@ -12,7 +12,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-black">
       <EvaHero />
       <section id="next-section">
-        <AgentOrchestration />
+        <AgentShowcase />
       </section>
       <GalTrace />
       <SecurityPrivacy />
