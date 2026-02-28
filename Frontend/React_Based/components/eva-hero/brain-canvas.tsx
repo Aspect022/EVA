@@ -65,6 +65,15 @@ export function BrainCanvas({
   const animFrameRef = useRef<number>(0);
   const prevModeRef = useRef(activeMode.id);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const rippleRef = useRef<{
+    active: boolean;
+    radius: number;
+    maxRadius: number;
+  }>({
+    active: false,
+    radius: 0,
+    maxRadius: 0,
+  });
 
   // Regenerate nodes when canvas size changes (fixed count for consistency across modes)
   const regenerateNodes = useCallback((w: number, h: number) => {
@@ -104,6 +113,13 @@ export function BrainCanvas({
     if (prevModeRef.current !== activeMode.id) {
       prevModeRef.current = activeMode.id;
       spinMultiplierRef.current = 8; // Temporary speed boost
+
+      // Trigger explosion ripple
+      rippleRef.current = {
+        active: true,
+        radius: 0,
+        maxRadius: Math.max(sizeRef.current.w, sizeRef.current.h) * 1.5,
+      };
     }
   }, [activeMode.id]);
 
@@ -144,6 +160,17 @@ export function BrainCanvas({
       const nodes = nodesRef.current;
       const progress = scrollProgress;
 
+      // Ripple expansion logic
+      let rippleSpeed = 0;
+      if (rippleRef.current.active) {
+        rippleRef.current.radius += 20; // 20px per frame outward wave speed
+        rippleSpeed = rippleRef.current.radius;
+
+        if (rippleRef.current.radius >= rippleRef.current.maxRadius) {
+          rippleRef.current.active = false;
+        }
+      }
+
       // Animate node positions
       for (const node of nodes) {
         const drift =
@@ -153,8 +180,29 @@ export function BrainCanvas({
         // Scroll-based expansion: nodes expand outward as scroll progresses
         const scrollPush = progress * (20 + node.layer * 15);
         const angleFromCenter = Math.atan2(node.baseY - cy, node.baseX - cx);
-        node.x = node.baseX + drift + Math.cos(angleFromCenter) * scrollPush;
-        node.y = node.baseY + driftY + Math.sin(angleFromCenter) * scrollPush;
+
+        // Explode Push: Nodes push outward briefly when the ripple reaches them
+        let explodePush = 0;
+        if (rippleRef.current.active) {
+          const distFromCenter = Math.sqrt(
+            Math.pow(node.baseX - cx, 2) + Math.pow(node.baseY - cy, 2),
+          );
+          const distToRipple = Math.abs(distFromCenter - rippleSpeed);
+
+          // If node is within the ripple wave (e.g. 100px thick), give it a push
+          if (distToRipple < 100) {
+            explodePush = (100 - distToRipple) * 0.4; // max 40px push
+          }
+        }
+
+        node.x =
+          node.baseX +
+          drift +
+          Math.cos(angleFromCenter) * (scrollPush + explodePush);
+        node.y =
+          node.baseY +
+          driftY +
+          Math.sin(angleFromCenter) * (scrollPush + explodePush);
       }
 
       // Draw connections
