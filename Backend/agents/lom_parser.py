@@ -186,9 +186,9 @@ class LOMParser:
                     if entries:
                         return entries
 
-        # Generic: look for any array field with > 5 items
+        # Generic: look for any array field with dictionaries (even just 1 item)
         for key, val in data.items():
-            if isinstance(val, list) and len(val) > 5 and all(isinstance(i, dict) for i in val[:5]):
+            if isinstance(val, list) and len(val) > 0 and all(isinstance(i, dict) for i in val[:5]):
                 return val
 
         return None

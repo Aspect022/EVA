@@ -1,6 +1,14 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
+from Backend.mlrl.schemas import (
+    ModelDefinitionRecord,
+    CandidateModelRecord,
+    ModelEvaluationRecord,
+    ModelValidationRecord,
+    PredictionDeploymentRecord,
+    GovernanceRecord,
+)
 
 
 def _coerce_to_list(v):
@@ -152,7 +160,7 @@ class ModificationRecord(BaseModel):
 
 class DataIntegrityRecord(BaseModel):
     modifications: Optional[List[ModificationRecord] | str] = Field(default_factory=list)
-    restricted_columns: Optional[Dict[str, str] | str] = Field(default_factory=dict)
+    restricted_columns: Optional[Dict[str, Any] | str] = Field(default_factory=dict)
     validation_result: str = Field(default="pending")
     overall_reasoning: str = Field(default="")
     script_execution: Optional[ScriptExecution] = None
@@ -307,10 +315,6 @@ class VisualizationPlanRecord(BaseModel):
         return v
 
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-
-# ... existing code ...
-
 # --- GAL Section 9: Recommendations & Decisions (Dashboard Plan) ---
 class KPI(BaseModel):
     name: str = Field(default="KPI", description="The name of the metric")
@@ -439,7 +443,9 @@ class ReportMemoryRecord(BaseModel):
 
 
 # --- Master GAL Model ---
-class GlobalAnalysisLedger(BaseModel):
+from Backend.mlrl.gal_extension import GALMLExtension
+
+class GlobalAnalysisLedger(BaseModel, GALMLExtension):
     session_id: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     current_dataset_path: Optional[str] = None
@@ -452,4 +458,12 @@ class GlobalAnalysisLedger(BaseModel):
     visualization_plan: Optional[VisualizationPlanRecord] = None
     dashboard_plan: Optional[DashboardPlanRecord] = None
     report_memory: Optional[ReportMemoryRecord] = None
+    ml_required: Optional[bool] = None
+    # MLRL structural foundation fields
+    model_definition: Optional[ModelDefinitionRecord] = None
+    candidate_models: Optional[CandidateModelRecord] = None
+    model_evaluation: Optional[ModelEvaluationRecord] = None
+    model_validation: Optional[ModelValidationRecord] = None
+    prediction_deployment: Optional[PredictionDeploymentRecord] = None
+    governance: Optional[GovernanceRecord] = None
 

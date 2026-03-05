@@ -22,40 +22,40 @@ Return a JSON object matching `DashboardPlanRecord` in `gal_schema.py`:
 {
   "kpis": [
     {
-      "name": "KPI Name",
-      "value": "Value or descriptive string",
-      "justification": "Why this matters",
-      "derivation_source": "GAL Source"
+      "name": "Dataset Completeness",
+      "value": "98.5%",
+      "justification": "Indicates high data reliability for this session.",
+      "derivation_source": "GAL Section 4 - missing_data_profile"
     }
   ],
   "alerts": [
     {
-      "alert_type": "Info | Warning | Critical",
-      "description": "Alert text",
-      "evidence_ref": "GAL Source",
-      "confidence": "Moderate"
+      "alert_type": "Warning",
+      "description": "High correlation detected between age and income.",
+      "evidence_ref": "GAL Section 4 - correlations",
+      "confidence": "High"
     }
   ],
   "recommendations": [
     {
-      "action": "What to do",
-      "target_group": "Who it affects",
-      "expected_impact": "Result",
-      "urgency": "Low | Medium | High",
+      "action": "Investigate outliers in the low-income group.",
+      "target_group": "Low Income Segment",
+      "expected_impact": "Improved model accuracy for minority classes.",
+      "urgency": "Medium",
       "confidence": "Moderate",
-      "supporting_evidence_ref": "GAL Source",
-      "supporting_hypothesis_ref": "Hypothesis Source"
+      "supporting_evidence_ref": "GAL Section 4 - outliers",
+      "supporting_hypothesis_ref": "Hypothesis 2 in GAL Section 5"
     }
   ],
   "panels": [
     {
-      "panel_name": "Label",
-      "description": "Panel purpose",
-      "elements": []
+      "panel_name": "A - System Overview",
+      "description": "High-level metrics and dataset health summary.",
+      "elements": ["kpi_1"]
     }
   ],
   "stakeholder_calibration": "general",
-  "overall_reasoning": "Brief summary"
+  "overall_reasoning": "Dashboard structured to highlight data quality first, followed by key segment alerts."
 }
 ```
 

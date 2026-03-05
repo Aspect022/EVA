@@ -5,7 +5,7 @@ import { ChevronUp, ChevronDown, Terminal, CheckCircle2, GripHorizontal } from "
 import { useSession, PIPELINE_PHASES } from "@/lib/session-context"
 
 export function GlobalAgenticLedger() {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [panelHeight, setPanelHeight] = useState(256)
   const { currentPhase, logs, isExecuting } = useSession()
   const logEndRef = useRef<HTMLDivElement>(null)

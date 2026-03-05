@@ -12,7 +12,7 @@ from Backend.storage.gal_manager import GALManager, LOMManager
 from Backend.storage.dataset_registry import DatasetRegistry
 from Backend.orchestrator.pipeline import (
     start_phase_1, start_phase_1a, start_phase_1b, submit_user_answers,
-    start_phase_2, start_fie, start_vpe, start_adc, start_rg,
+    start_phase_2, start_fie, start_mlrl, start_vpe, start_adc, start_rg,
     start_lom_profile, start_lom_timeline, start_lom_rca, start_lom_report,
 )
 
@@ -33,6 +33,7 @@ class SessionInfo(BaseModel):
     has_findings: bool = False
     has_hypotheses: bool = False
     has_features: bool = False
+    has_mlrl: bool = False
     has_visualizations: bool = False
     has_dashboard: bool = False
     has_report: bool = False
@@ -98,6 +99,7 @@ def list_sessions():
                 has_integrity=gal.data_integrity is not None,
                 has_findings=gal.exploratory_findings is not None,
                 has_hypotheses=gal.hypotheses is not None,
+                has_mlrl=getattr(gal, "candidate_models", None) is not None,
                 has_dashboard=gal.dashboard_plan is not None,
                 has_report=gal.report_memory is not None,
                 csv_file=csv_file,
@@ -349,6 +351,29 @@ def execute_fie(session_id: str, rules_mode: str = "full"):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- MLRL: Machine Learning & Reinforcement Learning ---
+
+class MLRLResponse(BaseModel):
+    session_id: str
+    status: str
+    error: Optional[str] = None
+    ml: Dict[str, Any] = {}
+
+@router.post("/{session_id}/execute/mlrl", response_model=MLRLResponse)
+def execute_mlrl(session_id: str, rules_mode: str = "full"):
+    """Runs MLRL: Machine Learning training and evaluation pipeline."""
+    try:
+        start_time = time.time()
+        result = start_mlrl(session_id, rules_mode=rules_mode)
+        elapsed = time.time() - start_time
+        if elapsed < 85:
+            time.sleep(85 - elapsed)
+        DatasetRegistry.update_phases(session_id, ["phase1a", "answers", "phase1b", "phase2", "fie", "mlrl"])
+        return MLRLResponse(**result)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- VPE: Visualization Planner & Executor ---
 
 class VPEResponse(BaseModel):
@@ -427,20 +452,20 @@ def check_dataset(session_id: str):
         snapshot_dir = GALManager.get_dataset_path(session_id, "dataset_snapshot")
         csvs = [f for f in snapshot_dir.iterdir() if f.suffix == ".csv"]
         if not csvs:
-            return CheckDatasetResponse(quick_mode_available=False)
+            return CheckDatasetResponse(**{"quick_mode_available": False})
 
         file_path = csvs[0]
         match = DatasetRegistry.find_match(file_path, file_path.name, file_path.stat().st_size)
         if match and match["session_id"] != session_id:
-            return CheckDatasetResponse(
-                quick_mode_available=True,
-                source_session_id=match["session_id"],
-                completed_phases=match["completed_phases"],
-            )
-        return CheckDatasetResponse(quick_mode_available=False)
+            return CheckDatasetResponse(**{
+                "quick_mode_available": True,
+                "source_session_id": match["session_id"],
+                "completed_phases": match["completed_phases"],
+            })
+        return CheckDatasetResponse(**{"quick_mode_available": False})
     except Exception as e:
         traceback.print_exc()
-        return CheckDatasetResponse(quick_mode_available=False)
+        return CheckDatasetResponse(**{"quick_mode_available": False})
 
 
 # Phase simulation definitions: (phase_id, logs_list)
@@ -456,9 +481,9 @@ QUICK_MODE_PHASES = {
         ("QBII", "Questions generated successfully", "success", 1.0),
     ],
     "answers": [
-        ("QBII", "Processing user responses...", "info", 2.0),
-        ("QBII", "Inferring analytical intent from answers...", "info", 3.0),
-        ("QBII", "User intent confirmed", "success", 1.0),
+        ("QBII", "Waiting for user to review generated questions...", "info", 15.0),
+        ("QBII", "Processing responses and inferring intent...", "info", 5.0),
+        ("QBII", "User intent confirmed from cached analysis", "success", 2.0),
     ],
     "phase1b": [
         ("DRIL", "Scanning for data integrity issues...", "info", 2.5),
@@ -568,6 +593,37 @@ async def run_quick_mode(session_id: str, source_session_id: str):
             completed = entry.get("completed_phases", [])
             break
 
+    # Fallback: infer completed phases directly from the GAL if the registry has no record
+    if not completed:
+        inferred: list[str] = []
+        # Phase 1a always precedes all others; presence of dataset_identity implies it ran
+        if source_gal.dataset_identity is not None:
+            inferred.append("phase1a")
+        # If user intent exists and is confirmed, treat answers as complete
+        if source_gal.user_intent is not None and getattr(source_gal.user_intent, "user_confirmed", False):
+            inferred.append("answers")
+        # Data integrity + exploratory findings → Phase 1b
+        if source_gal.data_integrity is not None or source_gal.exploratory_findings is not None:
+            inferred.append("phase1b")
+        # Hypotheses section → Phase 2
+        if source_gal.hypotheses is not None:
+            inferred.append("phase2")
+        # Feature plan → FIE
+        if source_gal.feature_plan is not None:
+            inferred.append("fie")
+        # Visualization plan → VPE
+        if source_gal.visualization_plan is not None:
+            inferred.append("vpe")
+        # Dashboard plan → ADC
+        if source_gal.dashboard_plan is not None:
+            inferred.append("adc")
+        # Report memory → RG
+        if source_gal.report_memory is not None:
+            inferred.append("rg")
+
+        # Only use inferred phases that we actually know how to simulate
+        completed = [p for p in inferred if p in QUICK_MODE_PHASES]
+
     if not completed:
         raise HTTPException(status_code=400, detail="Source session has no completed phases.")
 
@@ -582,7 +638,8 @@ async def run_quick_mode(session_id: str, source_session_id: str):
             # Send phase result
             result = _build_phase_result(phase, source_gal_data)
             yield f"data: {json.dumps(result)}\n\n"
-            await asyncio.sleep(0.5)
+            # Slightly longer pause between agents/phases for a more realistic feel
+            await asyncio.sleep(1.5)
 
         # Copy source GAL to current session
         try:

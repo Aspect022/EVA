@@ -12,18 +12,18 @@ Return a JSON object matching `gal_schema.py`:
 
 ```json
 {
-  "primary_objective": "PREDICT | EXPLAIN | SEGMENT | ANOMALY_DETECT | FORECAST",
-  "deployment_mode": "AUTOMATED | HUMAN_REVIEWED | HYBRID",
-  "decision_impact": "FINANCIAL_INDIVIDUAL | HEALTH_SAFETY | LEGAL_STATUS | OPERATIONAL | ANALYTICAL",
-  "risk_tier": "TIER_1 | TIER_2 | TIER_3",
+  "primary_objective": "PREDICT",
+  "deployment_mode": "HUMAN_REVIEWED",
+  "decision_impact": "FINANCIAL_INDIVIDUAL",
+  "risk_tier": "TIER_1",
   "interpretability_tier": 1,
-  "regulatory_mode": "STANDARD | REGULATED",
-  "regulatory_frameworks": [],
-  "error_cost_direction": "FN_DOMINANT | FP_DOMINANT | SYMMETRIC | UNKNOWN",
+  "regulatory_mode": "REGULATED",
+  "regulatory_frameworks": ["INTERNAL"],
+  "error_cost_direction": "FN_DOMINANT",
   "cost_matrix": {
-    "cost_asymmetry": "LOW | HIGH | UNKNOWN"
+    "cost_asymmetry": "HIGH"
   },
-  "time_awareness": "FORECAST | POINT_IN_TIME_STRICT | TREND_ANALYSIS | NONE",
+  "time_awareness": "NONE",
   "temporal_split_required": false,
   "inference_confidence": "HIGH",
   "escalation_required": false,

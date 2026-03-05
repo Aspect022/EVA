@@ -1,10 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import dynamic from "next/dynamic"
 import { ChevronRight, BarChart3, AlertCircle } from "lucide-react"
-
-const Plot = dynamic(() => import("@/components/PlotlyWrapper"), { ssr: false })
+import { PlotlyChart } from "@/components/PlotlyWrapper"
 
 interface VisualizationEntry {
   question: string
@@ -85,19 +83,9 @@ export function VisualizationGallery({
             {/* Chart */}
             <div className="p-4">
               {viz.plotly_config && (
-                <Plot
-                  data={(viz.plotly_config as { data?: Plotly.Data[] }).data || []}
-                  layout={{
-                    ...((viz.plotly_config as { layout?: Partial<Plotly.Layout> }).layout || {}),
-                    autosize: true,
-                    margin: { l: 40, r: 20, t: 50, b: 40 },
-                    paper_bgcolor: "rgba(0,0,0,0)",
-                    plot_bgcolor: "rgba(0,0,0,0)",
-                    font: { color: "rgba(255,255,255,0.7)", family: "Inter, sans-serif", size: 11 },
-                  }}
-                  config={{ responsive: true, displayModeBar: false }}
-                  style={{ width: "100%", height: "320px" }}
-                  useResizeHandler
+                <PlotlyChart
+                  data={((viz.plotly_config as Record<string, unknown>).data as unknown[]) || []}
+                  layout={(viz.plotly_config as Record<string, unknown>).layout as Record<string, unknown>}
                 />
               )}
             </div>

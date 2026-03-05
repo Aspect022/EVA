@@ -15,10 +15,17 @@ export interface SessionInfo {
   has_findings: boolean
   has_hypotheses: boolean
   has_features: boolean
+  has_mlrl: boolean
   has_visualizations: boolean
   has_dashboard: boolean
   has_report: boolean
   csv_file: string | null
+  has_lom_data: boolean
+  has_lom_profile: boolean
+  has_lom_timeline: boolean
+  has_lom_rca: boolean
+  has_lom_report: boolean
+  lom_file_count: number
 }
 
 export interface UploadResponse {
@@ -64,6 +71,13 @@ export interface FIEResponse {
   features: Array<Record<string, unknown>>
 }
 
+export interface MLRLResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  ml: Record<string, unknown>
+}
+
 export interface VPEResponse {
   session_id: string
   status: string
@@ -88,6 +102,50 @@ export interface RGResponse {
   status: string
   error?: string | null
   report: Record<string, unknown>
+}
+
+// --- LOM Response Types ---
+
+export interface UploadLomResponse {
+  session_id: string
+  total_uploaded: number
+  uploaded: Array<Record<string, unknown>>
+  errors: string[]
+}
+
+export interface LOMProfileResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  source_inventory: Record<string, unknown>
+}
+
+export interface LOMTimelineResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  timeline_events: number
+  anomalies_found: number
+  hypotheses_count: number
+  hypotheses: Array<Record<string, unknown>>
+}
+
+export interface LOMReportResponse {
+  session_id: string
+  status: string
+  error?: string | null
+  report: Record<string, unknown>
+}
+
+export interface LOMGalData {
+  session_id: string
+  source_inventory?: Record<string, unknown>
+  log_profile?: Record<string, unknown>
+  metric_profile?: Record<string, unknown>
+  timeline?: Record<string, unknown>
+  rca_hypotheses?: Record<string, unknown>
+  rca_report?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 export interface CheckDatasetResponse {
@@ -146,7 +204,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       const detail = await res.text().catch(() => res.statusText)
       throw new Error(`API ${res.status}: ${detail}`)
     }
-    return res.json()
+    const data = await res.json()
+    if (data && typeof data === "object" && "error" in data && data.error) {
+      throw new Error(data.error as string)
+    }
+    return data as T
   } finally {
     clearTimeout(timeout)
   }
@@ -200,6 +262,12 @@ export const api = {
       { method: "POST" }
     ),
 
+  executeMLRL: (sessionId: string, rulesMode = "full") =>
+    apiFetch<MLRLResponse>(
+      `/session/${sessionId}/execute/mlrl?rules_mode=${rulesMode}`,
+      { method: "POST" }
+    ),
+
   executeVPE: (sessionId: string, rulesMode = "full") =>
     apiFetch<VPEResponse>(
       `/session/${sessionId}/execute/vpe?rules_mode=${rulesMode}`,
@@ -229,6 +297,31 @@ export const api = {
 
   getReport: (sessionId: string) =>
     apiFetch<ReportData>(`/session/${sessionId}/report`),
+
+  // --- LOM API Functions ---
+  
+  uploadLomDataset: async (sessionId: string, files: File[]) => {
+    const form = new FormData()
+    files.forEach(f => form.append("files", f))
+    const res = await fetch(`${API_BASE}/session/${sessionId}/upload-lom`, {
+      method: "POST",
+      body: form,
+    })
+    if (!res.ok) throw new Error(`LOM Upload failed: ${res.statusText}`)
+    return res.json() as Promise<UploadLomResponse>
+  },
+
+  executeLomProfile: (sessionId: string) =>
+    apiFetch<LOMProfileResponse>(`/session/${sessionId}/execute/lom-profile`, { method: "POST" }),
+
+  executeLomTimeline: (sessionId: string) =>
+    apiFetch<LOMTimelineResponse>(`/session/${sessionId}/execute/lom-timeline`, { method: "POST" }),
+    
+  executeLomReport: (sessionId: string) =>
+    apiFetch<LOMReportResponse>(`/session/${sessionId}/execute/lom-report`, { method: "POST" }),
+
+  getLomGal: (sessionId: string) =>
+    apiFetch<LOMGalData>(`/session/${sessionId}/lom-gal`),
 
   checkDataset: (sessionId: string) =>
     apiFetch<CheckDatasetResponse>(

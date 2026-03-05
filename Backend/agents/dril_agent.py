@@ -2,7 +2,7 @@ import re
 import pandas as pd
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Dict
+from typing import Dict, List, Optional, Any
 
 from Backend.agents.llm_core import invoke_agent
 from Backend.models.gal_schema import (
@@ -31,7 +31,7 @@ def _load_rules(rules_mode: str = "full") -> str:
 class CleaningStrategy(BaseModel):
     """What the Strategy Agent returns — reasoning + decisions, no code."""
     modifications: List[ModificationRecord] = Field(default_factory=list)
-    restricted_columns: Dict[str, str] = Field(
+    restricted_columns: Dict[str, Any] = Field(
         default_factory=dict, description="Columns flagged as restricted and why"
     )
     validation_result: str = Field(

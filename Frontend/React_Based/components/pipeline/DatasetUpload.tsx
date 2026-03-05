@@ -1,71 +1,86 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import { UploadCloud, FileType, CheckCircle, Zap } from "lucide-react"
-import { useSession } from "@/lib/session-context"
+import { useState, useRef } from "react";
+import { UploadCloud, FileType, CheckCircle } from "lucide-react";
+import { useSession } from "@/lib/session-context";
 
 export function DatasetUpload() {
-  const [isDragging, setIsDragging] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const { isExecuting, createAndUpload, quickModeAvailable, quickModeEnabled, setQuickModeEnabled, runQuickMode } = useSession()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const { isExecuting, createAndUpload } = useSession();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    setIsDragging(true);
+  };
 
   const handleDragLeave = () => {
-    setIsDragging(false)
-  }
+    setIsDragging(false);
+  };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+    e.preventDefault();
+    setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileSelection(e.dataTransfer.files[0])
+      handleFileSelection(e.dataTransfer.files[0]);
     }
-  }
+  };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      handleFileSelection(e.target.files[0])
+      handleFileSelection(e.target.files[0]);
     }
-  }
+  };
 
   const handleFileSelection = (selectedFile: File) => {
-    if (!selectedFile.name.endsWith(".csv")) {
-      alert("Please upload a CSV file.")
-      return
+    // Only warn if they upload a file that might genuinely be unsupported,
+    // though the backend accepts a wide range of LOM files (.json, .log, .yaml, .txt, .csv, ...)
+    const ext = selectedFile.name.split(".").pop()?.toLowerCase();
+    const validExts = [
+      "csv",
+      "json",
+      "log",
+      "txt",
+      "py",
+      "js",
+      "ts",
+      "yaml",
+      "yml",
+    ];
+
+    if (!ext || !validExts.includes(ext)) {
+      alert("Please upload a supported file (.csv, .json, .log, etc).");
+      return;
     }
-    setFile(selectedFile)
-  }
+    setFile(selectedFile);
+  };
 
   const handleUpload = async () => {
-    if (!file) return
-    await createAndUpload(file)
-  }
+    if (!file) return;
+    await createAndUpload(file);
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto mt-10">
-      <div 
+      <div
         className={`border-2 border-dashed rounded-2xl p-12 transition-all duration-300 flex flex-col items-center justify-center text-center ${
-          isDragging 
-            ? "border-white/20 bg-white/[0.04]" 
-            : file 
-            ? "border-green-500/40 bg-green-900/5"
-            : "border-white/[0.06] hover:border-white/20 hover:bg-white/[0.02]"
+          isDragging
+            ? "border-white/20 bg-white/[0.04]"
+            : file
+              ? "border-green-500/40 bg-green-900/5"
+              : "border-white/[0.06] hover:border-white/20 hover:bg-white/[0.02]"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <input 
-          type="file" 
-          accept=".csv" 
-          className="hidden" 
-          ref={fileInputRef} 
-          onChange={handleFileInput} 
+        <input
+          type="file"
+          accept=".csv,.json,.log,.txt,.yaml,.yml,.py,.js,.ts"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleFileInput}
         />
 
         {!file ? (
@@ -73,15 +88,19 @@ export function DatasetUpload() {
             <div className="w-20 h-20 rounded-full bg-[#0A0A0A] flex items-center justify-center mb-6 border border-white/[0.06]">
               <UploadCloud className="w-10 h-10 text-white/40" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Upload your dataset</h3>
+            <h3 className="text-2xl font-bold text-white mb-2">
+              Upload your dataset
+            </h3>
             <p className="text-white/40 max-w-md mx-auto mb-8">
-              Drag and drop your CSV file here, or click the button below to browse.
+              Drag and drop your CSV or LOM text/log files here, or click the
+              button below to browse.
             </p>
-            <button 
+            <button
+              suppressHydrationWarning
               onClick={() => fileInputRef.current?.click()}
               className="px-6 py-3 rounded-lg bg-[#0A0A0A] border border-white/[0.06] text-white hover:bg-white/[0.06] transition-all focus:outline-none"
             >
-              Select CSV File
+              Select File
             </button>
           </>
         ) : (
@@ -94,34 +113,17 @@ export function DatasetUpload() {
               {(file.size / 1024).toFixed(2)} KB
             </p>
 
-            {quickModeAvailable && (
-              <label className="flex items-center gap-2 mb-6 cursor-pointer select-none group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={quickModeEnabled}
-                    onChange={(e) => setQuickModeEnabled(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 rounded-full bg-[#0A0A0A] border border-white/[0.06] peer-checked:bg-[#F97316]/80 transition-colors" />
-                  <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/40 peer-checked:translate-x-4 peer-checked:bg-white transition-transform" />
-                </div>
-                <Zap className="w-3.5 h-3.5 text-[#F97316]" />
-                <span className="text-sm text-white/40 group-hover:text-white transition-colors">
-                  Quick Mode
-                </span>
-              </label>
-            )}
-            
             <div className="flex gap-4">
-              <button 
+              <button
+                suppressHydrationWarning
                 onClick={() => setFile(null)}
                 className="px-6 py-3 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-900/20 transition-all focus:outline-none"
                 disabled={isExecuting}
               >
                 Remove
               </button>
-              <button 
+              <button
+                suppressHydrationWarning
                 onClick={handleUpload}
                 disabled={isExecuting}
                 className="px-8 py-3 rounded-lg bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold transition-all focus:outline-none disabled:opacity-70 flex items-center gap-2"
@@ -143,5 +145,5 @@ export function DatasetUpload() {
         )}
       </div>
     </div>
-  )
+  );
 }

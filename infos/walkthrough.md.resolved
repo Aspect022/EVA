@@ -1,0 +1,119 @@
+# LOM Pipeline Implementation Walkthrough
+
+## What Was Built
+
+A complete **Logging, Monitoring & Observability (LOM)** data processing pipeline for Root Cause Analysis (RCA), running as a separate system alongside the existing CSV pipeline.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Upload
+        A[".json .log .py .csv .yaml"] --> B["lom_parser.py"]
+    end
+    subgraph "LOM Pipeline (LangGraph)"
+        B --> C["LOM Profiler"]
+        C --> D["LOM Timeline"]
+        D --> E["LOM RCA"]
+        E --> F["LOM Report"]
+    end
+    subgraph Storage
+        C --> G["LOM_GAL.json"]
+        D --> G
+        E --> G
+        F --> G
+    end
+    subgraph "Untouched"
+        H["GAL.json (CSV)"]
+    end
+```
+
+---
+
+## Files Created/Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| [lom_schema.py](file:///d:/Projects/EVA/Backend/models/lom_schema.py) | NEW | 8-section Pydantic schema for LOM_GAL |
+| [lom_parser.py](file:///d:/Projects/EVA/Backend/agents/lom_parser.py) | NEW | Universal parser: JSON, log, CSV, Python, JS, YAML |
+| [gal_manager.py](file:///d:/Projects/EVA/Backend/storage/gal_manager.py) | MODIFIED | Added [LOMManager](file:///d:/Projects/EVA/Backend/storage/gal_manager.py#59-110) class |
+| [lom_profiler_agent.py](file:///d:/Projects/EVA/Backend/agents/lom_profiler_agent.py) | NEW | Profiles logs + metrics |
+| [lom_timeline_agent.py](file:///d:/Projects/EVA/Backend/agents/lom_timeline_agent.py) | NEW | Timeline + anomaly detection |
+| [lom_rca_agent.py](file:///d:/Projects/EVA/Backend/agents/lom_rca_agent.py) | NEW | RCA hypothesis generation |
+| [lom_report_agent.py](file:///d:/Projects/EVA/Backend/agents/lom_report_agent.py) | NEW | Final RCA narrative |
+| [LOMProfilerRules.md](file:///d:/Projects/EVA/Backend/rules/LOMProfilerRules.md) | NEW | Profiler agent rules |
+| [LOMTimelineRules.md](file:///d:/Projects/EVA/Backend/rules/LOMTimelineRules.md) | NEW | Timeline agent rules |
+| [LOMRCARules.md](file:///d:/Projects/EVA/Backend/rules/LOMRCARules.md) | NEW | RCA hypothesis rules |
+| [LOMReportRules.md](file:///d:/Projects/EVA/Backend/rules/LOMReportRules.md) | NEW | Report generator rules |
+| [pipeline.py](file:///d:/Projects/EVA/Backend/orchestrator/pipeline.py) | MODIFIED | 3 LOM LangGraph workflows + 4 public functions |
+| [session.py](file:///d:/Projects/EVA/Backend/api/routes/session.py) | MODIFIED | 6 LOM API endpoints |
+| [2_LOM_Pipeline.py](file:///d:/Projects/EVA/Frontend/pages/2_LOM_Pipeline.py) | NEW | Dedicated Streamlit UI page for LOM testing |
+
+---
+
+## API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/{id}/upload-lom` | POST | Upload .json, .log, .py, .csv, .yaml files |
+| `/{id}/execute/lom-profile` | POST | Parse + profile logs/metrics |
+| `/{id}/execute/lom-timeline` | POST | Timeline + anomaly detection + RCA |
+| `/{id}/execute/lom-rca` | POST | Standalone RCA re-run |
+| `/{id}/execute/lom-report` | POST | Final RCA narrative report |
+| `/{id}/lom-gal` | GET | Retrieve LOM_GAL state |
+
+---
+
+## Test Results
+
+```
+============================================================
+ LOM Pipeline Integration Tests
+============================================================
+
+--- Test: Schema Creation ---
+  [PASS] All schema models instantiate correctly
+
+--- Test: JSON Parser ---
+  Parsed 15 log entries from JSON
+  Found 9 ERROR/FATAL entries
+  [PASS] JSON parser works correctly
+
+--- Test: Log File Parser ---
+  Parsed 21 log entries from log file
+  21 entries have timestamps
+  Levels: 3 errors, 3 warnings
+  [PASS] Log parser works correctly
+
+--- Test: Python Code Parser ---
+  Functions detected: ['UserHandler']
+  [PASS] Python parser works correctly
+
+--- Test: Directory Parser ---
+  Total source files: 3
+  Total log entries: 36, Total code artifacts: 1
+  LLM summary length: 5616 chars
+  [PASS] Directory parser works correctly
+
+--- Test: LOM Session Lifecycle ---
+  [PASS] GAL.json is completely untouched (isolation confirmed)
+  [PASS] LOM session lifecycle works correctly
+
+--- Test: Full Parse + Store ---
+  [PASS] Full parse + store pipeline works correctly
+  [PASS] CSV pipeline isolation confirmed
+
+Results: 7 passed, 0 failed out of 7 tests
+============================================================
+```
+
+---
+
+## Key Design Decisions
+
+1. **Complete isolation**: LOM_GAL.json lives alongside GAL.json in the same session directory but they never interact. Zero modifications to existing CSV agent code.
+2. **Universal parser**: Single entry point handles JSON (Kibana/Grafana/NDJSON), syslog, CSV metrics, Python (with AST + traceback extraction), JS/TS, and YAML configs.
+3. **Error-first summarization**: The LLM summary builder prioritizes ERROR/FATAL entries to fit within context windows, showing all errors but only sampling INFO logs.
+4. **Sequential agent chain**: Profiler → Timeline → RCA → Report, matching the existing DPSU → EPR → IHE → RG pattern but adapted for observability data.
