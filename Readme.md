@@ -1,15 +1,15 @@
 <div align="center">
   
-# 🧠 EVA: Autonomous Data Science System
+# 🧠 EVA: Autonomous Exploratory Visual Analyst
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-*An autonomous data science assistant and reasoning operating system.*
+*An autonomous exploratory visual analyst.*
 <br>
-**EVA is not just a chatbot; it is a session-based analytical OS designed to perform Understanding, Reasoning, Hypothesis Generation, Evidence Gathering, and Learning.**
+**EVA is not just a chatbot; it is a session-based autonomous exploratory visual analyst designed to perform Understanding, Reasoning, Hypothesis Generation, Evidence Gathering, and Learning.**
 
 Every action EVA takes is logged in an append-only **Global Analysis Ledger (GAL)** to ensure transparency, reproducibility, and human oversight.
 
@@ -73,7 +73,7 @@ You will need two terminal windows running simultaneously to start both the back
 ```text
 EVA/
 ├── ⚙️ Backend/          # FastAPI app, LangGraph orchestrator, reasoning agents, GAL storage
-├── 🎨 Frontend/         # User interfaces (Streamlit app & React OS dashboard)
+├── 🎨 Frontend/         # User interfaces (Streamlit app & React dashboard)
 ├── 🧠 Agents/           # Specialized reasoning modules and ML utilities
 ├── 📚 Docs/             # Architecture documentation, design records
 └── 📁 eva_sessions/     # UUID-based session state directories (GAL & data snapshots)
