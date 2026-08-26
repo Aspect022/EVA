@@ -1,70 +1,110 @@
-# EVA — Visual Analysis Toolkit
+<div align="center">
+  
+# 🧠 EVA: Autonomous Data Science OS
 
-> Turn data into beautiful, interactive visual insights — fast.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]() [![License](https://img.shields.io/badge/license-MIT-blue)]()
+*An autonomous data science assistant and reasoning operating system.*
+<br>
+**EVA is not just a chatbot; it is a session-based analytical OS designed to perform Understanding, Reasoning, Hypothesis Generation, Evidence Gathering, and Learning.**
 
-EVA is a hybrid TypeScript + Python project that helps teams build interactive visual workflows and tools quickly. It combines a responsive frontend with a powerful Python backend to let you prototype, analyze, and present data-driven visuals with minimal friction.
+Every action EVA takes is logged in an append-only **Global Analysis Ledger (GAL)** to ensure transparency, reproducibility, and human oversight.
 
-Why EVA?
-- Delightful visuals out of the box — clean UI components and responsive design.
-- Full-stack flexibility — TypeScript for the frontend, Python for data processing and ML.
-- Fast to prototype — clear structure and scripts to get you running in minutes.
+---
+</div>
 
-Key features
-- Interactive charts and dashboards (configurable and modular)
-- Data ingestion helpers and preprocessing utilities
-- Extensible components for adding custom visual elements
-- Developer-friendly tooling and scripts
+## ✨ Key Features
 
-Tech stack
-- Frontend: TypeScript, React (or similar), CSS
-- Backend: Python (data processing, model glue)
-- Build & tooling: npm / pip / standard dev scripts
+| Module | Description |
+|--------|-------------|
+| 📜 **Global Analysis Ledger (GAL)** | A pure JSON-based append-only ledger tracking every reasoning step, hypothesis, and data transformation. |
+| 📊 **Dataset Profiler (DPSU)** | Autonomously infers row meaning, column roles, and domain context from raw CSV uploads. |
+| 🎯 **Intent Inference (QBII)** | Understands analytical goals and stakeholder context. |
+| 🛠️ **Data Repair (DRIL)** | Fixes missing values, duplicates, and outliers with explicit reasoning written to the GAL. |
+| 💡 **Hypothesis Engine (IHE)** | Generates plausible real-world hypotheses per observation, with a strict Human-In-The-Loop (HITL) pause for user validation. |
+| 🤖 **Machine Learning Layer (MLRL)**| Containerized, evidence-bound ML execution triggered only after hypothesis authorization. |
 
-Getting started (quick)
-1. Clone the repo
-   git clone https://github.com/Aspect022/EVA.git
-   cd EVA
+---
 
-2. Frontend (TypeScript)
-   - cd frontend (or the frontend directory)
-   - npm install
-   - npm run dev
-   The app should be available at http://localhost:3000 (or the configured port).
+## 🚀 Quick Start Guide
 
-3. Backend (Python)
-   - cd backend (or the backend directory)
-   - python -m venv .venv
-   - source .venv/bin/activate  # Windows: .venv\Scripts\activate
-   - pip install -r requirements.txt
-   - python app.py  # or the project's main entry
+<details open>
+<summary><b>1️⃣ Prerequisites</b></summary>
+<br>
 
-Project structure (example)
-- /frontend — TypeScript UI code
-- /backend — Python services and data utilities
-- /docs — usage notes, design guidelines, and examples
+Ensure Ollama is running with the `gpt-oss:120b-cloud` model pulled:
+```powershell
+ollama pull gpt-oss:120b-cloud
+```
 
-Usage examples
-- Load a dataset, choose a visualization template, and interactively tune parameters.
-- Connect EVA's backend preprocessing to your data pipeline and use the UI to visualize outputs.
+Activate your Python Virtual Environment:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+</details>
 
-Contributing
-We welcome contributions of all sizes! Please:
-- Open an issue for feature ideas or bugs.
-- Fork the repo, create a feature branch, and submit a PR.
-- Add tests and update docs for non-trivial changes.
+<details open>
+<summary><b>2️⃣ Running the System</b></summary>
+<br>
 
-Tips for new contributors
-- Run the dev environment locally to see changes live.
-- Follow the existing code style in TypeScript and Python modules.
-- If you add new visual components, include an example or storybook entry.
+You will need two terminal windows running simultaneously to start both the backend API and frontend UI.
 
-License
-This project is open-source under the MIT License. See LICENSE for details.
+**⚡ Terminal A: Backend (FastAPI)**
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn Backend.api.main:app --reload
+```
+> 📍 **API URL**: `http://localhost:8000`  
+> 📖 **API Docs**: `http://localhost:8000/docs`
 
-Maintainers
-- Aspect022 (owner)
-- Contributors: See the repository contributors list
+**🖥️ Terminal B: Frontend (Streamlit / React)**
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run Frontend\streamlit_app.py
+```
+> 🌐 **UI URL**: `http://localhost:8502`
+</details>
 
-Have ideas or want a demo? Open an issue or start a discussion — we'd love to hear how you want to use EVA!
+---
+
+## 📂 Project Structure
+
+```text
+EVA/
+├── ⚙️ Backend/          # FastAPI app, LangGraph orchestrator, reasoning agents, GAL storage
+├── 🎨 Frontend/         # User interfaces (Streamlit app & React OS dashboard)
+├── 🧠 Agents/           # Specialized reasoning modules and ML utilities
+├── 📚 Docs/             # Architecture documentation, design records
+└── 📁 eva_sessions/     # UUID-based session state directories (GAL & data snapshots)
+```
+
+> **Tip:** Click on the module names below to view their specific READMEs:
+> [`/Backend`](./Backend/README.md) • [`/Frontend`](./Frontend/README.md) • [`/Agents`](./Agents/README.md) • [`/Docs`](./Docs/README.md)
+
+---
+
+## ⚙️ Configuration
+
+The system uses local environment variables and JSON configurations located in the `Backend` directory.
+
+| Environment Variable | Description | Default Value |
+|----------------------|-------------|---------------|
+| `PORT` | Backend API port | `8000` |
+| `OLLAMA_URL` | Local Ollama endpoint | `http://localhost:11434` |
+
+---
+
+## 📖 Documentation & Planning
+
+Explore the deep architecture and implementation progress of EVA:
+
+- 🏛️ [Master Architecture](./Docs/EVA-DataScience/Mini-Docs/01_EVA_Master_Architecture.md)
+- 📈 [Implementation Tracker](./Implementation_Tracker.md)
+- 🛣️ [Phased Plan](./eva-phased-plan.md)
+
+---
+
+<div align="center">
+  <i>Developed with ❤️ for Autonomous Data Science</i>
+</div>
